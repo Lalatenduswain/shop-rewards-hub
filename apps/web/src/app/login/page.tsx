@@ -147,6 +147,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="block w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent"
                     placeholder="you@example.com"
+                    suppressHydrationWarning
                   />
                 </div>
 
@@ -164,6 +165,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent"
                     placeholder="Enter your password"
+                    suppressHydrationWarning
                   />
                 </div>
               </>
@@ -183,6 +185,7 @@ export default function LoginPage() {
                   placeholder="000000"
                   maxLength={6}
                   className="block w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-zinc-900 dark:text-white text-center text-lg tracking-wider placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:border-transparent"
+                  suppressHydrationWarning
                 />
               </div>
             )}
