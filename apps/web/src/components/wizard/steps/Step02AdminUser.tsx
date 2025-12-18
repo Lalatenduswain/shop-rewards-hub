@@ -14,8 +14,8 @@ export function Step02AdminUser() {
 
   const {
     register,
-
     watch,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<AdminUser>({
     resolver: zodResolver(adminUserSchema),
@@ -23,20 +23,18 @@ export function Step02AdminUser() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const password = watch('password');
-
-  useEffect(() => {
-    if (formValues) {
-      setAdminData(formValues);
-    }
-  }, [formValues, setAdminData]);
 
   useEffect(() => {
     if (isValid) {
       markStepCompleted(2);
     }
   }, [isValid, markStepCompleted]);
+
+  // Save form data
+  const saveFormData = (data: AdminUser) => {
+    setAdminData(data);
+  };
 
   // Password strength indicator
   const getPasswordStrength = (pwd: string | undefined): number => {
