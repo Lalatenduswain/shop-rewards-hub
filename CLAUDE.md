@@ -88,12 +88,16 @@ bdce3b1 feat(frontend): add authentication context and permission hooks
 - 2.4: Validation services (SMTP, DNS, DB)
 - 2.5: First-boot detection system
 
-### ✅ Phase 3: Authentication (80%)
+### ✅ Phase 3: Authentication (95%)
 - 3.1: JWT service (sign, verify, refresh) ✅
 - 3.2: RBAC service with permission seeding ✅
 - 3.3: Admin user management system ✅
 - 3.4: Authentication context and frontend hooks ✅
-- 3.5: MFA service (TOTP + QR codes) ⏳ PENDING
+- 3.5: MFA backend service (TOTP + QR codes) ✅
+  - MFA service with TOTP, QR codes, backup codes (238 lines)
+  - Auth router with all MFA endpoints (583 lines)
+  - Dependencies in package.json (speakeasy, qrcode)
+  - Frontend UI for MFA setup/verification ⏳ PENDING
 
 ### ✅ Phase 6.1: Docker Compose (Partial)
 - Docker Compose configuration (9 services)
@@ -107,11 +111,11 @@ bdce3b1 feat(frontend): add authentication context and permission hooks
 
 ### Critical Path to MVP
 
-1. **Phase 3.3: MFA Implementation** (1-2 days)
-   - TOTP generation with speakeasy
-   - QR code generation for authenticator apps
-   - Backup codes management
-   - MFA verification flow
+1. **Phase 3.5: MFA Frontend UI** (0.5-1 day)
+   - MFA setup page UI (scan QR code, verify token, save backup codes)
+   - MFA verification UI during login
+   - User settings page for MFA management (enable/disable, regenerate codes)
+   - Note: Backend fully complete, only UI needed
 
 2. **Phase 4: Multi-Tenancy Services** (3-5 days)
    - MinIO tenant isolation (bucket-per-tenant)
@@ -262,16 +266,16 @@ sudo systemctl stop cloudflared-tunnel4
 ## Next Session Priorities
 
 **Recommended Order:**
-1. Complete MFA implementation (Phase 3.3) to finish authentication
-2. Implement wizard database operations (connect TODO comments to actual DB)
-3. Build multi-tenancy services (Phase 4)
+1. Implement wizard database operations (20+ TODO items, straightforward Prisma calls)
+2. Build MFA frontend UI (backend 100% complete, just needs UI pages)
+3. Build multi-tenancy services (Phase 4 - MinIO, Valkey, context propagation)
 4. Create Dockerfiles to make system fully containerized
 5. Begin core features (receipt OCR, vouchers)
 
 **Quick Wins:**
-- Implement wizard database operations (most are straightforward Prisma calls)
-- Add MFA service (libraries already in dependencies)
-- Create basic Dockerfiles for web/api/worker
+- Wizard DB operations: Most are 5-10 line Prisma calls (high value, low effort)
+- MFA UI pages: Backend ready, just need React components
+- Basic Dockerfiles: Templates exist, just need customization
 
 ---
 
