@@ -15,12 +15,17 @@ import PageHeader from '@/components/admin/ui/PageHeader';
 import LoadingSkeleton from '@/components/admin/ui/LoadingSkeleton';
 import EmptyState from '@/components/admin/ui/EmptyState';
 import ErrorAlert from '@/components/admin/ui/ErrorAlert';
+import ConfirmDialog from '@/components/admin/ui/ConfirmDialog';
+import CreateUserModal from '@/components/admin/forms/CreateUserModal';
 
 export default function UsersPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [selectedShopId, setSelectedShopId] = useState<string | undefined>();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleteUserEmail, setDeleteUserEmail] = useState<string>('');
 
   const canCreate = usePermission('users', 'create');
   const canDelete = usePermission('users', 'delete');
@@ -36,6 +41,18 @@ export default function UsersPage() {
     limit: 20,
     search: search || undefined,
     shopId: selectedShopId,
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = trpc.users.delete.useMutation({
+    onSuccess: () => {
+      setDeleteUserId(null);
+      setDeleteUserEmail('');
+      refetch();
+    },
+    onError: (error) => {
+      alert(`Failed to delete user: ${error.message}`);
+    },
   });
 
   if (isLoading) {
@@ -73,16 +90,42 @@ export default function UsersPage() {
 
   return (
     <div>
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          refetch();
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteUserId}
+        title="Delete User"
+        message={`Are you sure you want to delete ${deleteUserEmail}? This action cannot be undone. The user will be soft-deleted and their sessions will be revoked.`}
+        confirmLabel="Delete User"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (deleteUserId) {
+            deleteUserMutation.mutate({ id: deleteUserId });
+          }
+        }}
+        onCancel={() => {
+          setDeleteUserId(null);
+          setDeleteUserEmail('');
+        }}
+        isLoading={deleteUserMutation.isPending}
+      />
+
       <PageHeader
         title="Users"
         description={`${total} total users`}
         actions={
           canCreate && (
             <button
-              onClick={() => {
-                // TODO: Open create user modal
-                alert('Create User modal coming soon!');
-              }}
+              onClick={() => setIsCreateModalOpen(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
               <svg
@@ -158,7 +201,7 @@ export default function UsersPage() {
             canCreate
               ? {
                   label: 'Create User',
-                  onClick: () => alert('Create User modal coming soon!'),
+                  onClick: () => setIsCreateModalOpen(true),
                 }
               : undefined
           }
@@ -257,10 +300,8 @@ export default function UsersPage() {
                     {canDelete && userItem.id !== user?.userId && (
                       <button
                         onClick={() => {
-                          // TODO: Delete user with confirmation
-                          if (confirm(`Delete user ${userItem.email}?`)) {
-                            alert('Delete mutation coming soon!');
-                          }
+                          setDeleteUserId(userItem.id);
+                          setDeleteUserEmail(userItem.email);
                         }}
                         className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
                       >
