@@ -1,0 +1,61 @@
+{
+  "name": "shop-rewards-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant SaaS rewards platform with zero hardcoded secrets",
+  "author": "ShopRewards Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "db:generate": "turbo run db:generate --filter=@shop-rewards/db",
+    "db:migrate": "turbo run db:migrate --filter=@shop-rewards/db",
+    "db:migrate:deploy": "turbo run db:migrate:deploy --filter=@shop-rewards/db",
+    "db:seed": "turbo run db:seed --filter=@shop-rewards/db",
+    "db:studio": "turbo run db:studio --filter=@shop-rewards/db",
+    "docker:dev": "./scripts/dev.sh",
+    "docker:build": "./scripts/build.sh",
+    "docker:prod": "docker-compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d",
+    "docker:down": "docker-compose -f infra/docker-compose.yml down",
+    "docker:logs": "docker-compose -f infra/docker-compose.yml logs -f",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4",
+    "turbo": "^1.12.0",
+    "typescript": "^5.3.3"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}

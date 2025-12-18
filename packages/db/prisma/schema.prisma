@@ -1,0 +1,631 @@
+// ShopRewards Hub - Multi-Tenant Prisma Schema
+// Zero hardcoded secrets, RBAC, RLS, GDPR compliant
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// ============================================
+// SYSTEM CONFIGURATION & SETUP
+// ============================================
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String?  @db.Text // Encrypted via middleware
+  isEncrypted Boolean  @default(false)
+  category    String // 'company', 'database', 'integrations', 'security', 'billing'
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@index([category])
+  @@map("system_configs")
+}
+
+model SetupWizardState {
+  id               String    @id @default(cuid())
+  currentStep      Int       @default(1)
+  completedSteps   Int[]     @default([])
+  stateData        String    @db.Text // JSON snapshot for recovery
+  systemConfigured Boolean   @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("setup_wizard_state")
+}
+
+model Company {
+  id           String   @id @default(cuid()) @default("default")
+  name         String
+  industry     String?
+  country      String
+  timezone     String   @default("UTC")
+  currency     String   @default("USD")
+  logoUrl      String?
+  faviconUrl   String?
+  customDomain String?  @unique
+  emailSender  String?
+  themeColors  String?  @db.Text // JSON: { primary, secondary, accent }
+  language     String   @default("en")
+  dateFormat   String   @default("YYYY-MM-DD")
+  timeFormat   String   @default("HH:mm")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("companies")
+}
+
+// ============================================
+// MULTI-TENANT CORE: SHOPS
+// ============================================
+
+model Shop {
+  id                   String       @id @default(cuid())
+  slug                 String       @unique // For subdomain: {slug}.shoprewards.com
+  name                 String
+  description          String?
+  logo                 String?
+  status               ShopStatus   @default(PENDING_APPROVAL)
+  customDomain         String?      @unique
+  dnsVerificationToken String?
+  emailVerified        Boolean      @default(false)
+  verificationToken    String?
+  // Contact
+  email                String
+  phone                String?
+  address              String?
+  city                 String?
+  state                String?
+  country              String
+  postalCode           String?
+  // Security
+  ipWhitelist          String[]     @default([])
+  allowedOrigins       String[]     @default([])
+  // GDPR
+  dataRetentionDays    Int          @default(30)
+  // Billing
+  billingProvider      String? // 'stripe', 'paypal', 'manual'
+  stripeCustomerId     String?
+  paypalMerchantId     String?
+  // Relationships
+  users                User[]
+  receipts             Receipt[]
+  vouchers             Voucher[]
+  ads                  Ad[]
+  redemptions          Redemption[]
+  configs              ShopConfig[]
+  auditLogs            AuditLog[]
+  gdprConsents         GdprConsent[]
+  departments          Department[]
+  roles                Role[] // Tenant-specific roles
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime? // Soft delete
+
+  @@index([slug])
+  @@index([status])
+  @@index([email])
+  @@map("shops")
+}
+
+enum ShopStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+// ============================================
+// RBAC: USERS, ROLES, PERMISSIONS
+// ============================================
+
+model User {
+  id                  String           @id @default(cuid())
+  email               String
+  passwordHash        String
+  firstName           String
+  lastName            String
+  // Tenant relationship (nullable for super_admin)
+  shopId              String?
+  shop                Shop?            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  // RBAC
+  roles               UserRole[]
+  // MFA
+  mfaEnabled          Boolean          @default(false)
+  mfaSecret           String? // Encrypted TOTP secret
+  mfaBackupCodes      String[]         @default([]) // Encrypted backup codes
+  // Session management
+  sessions            Session[]
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  failedLoginAttempts Int              @default(0)
+  lockedUntil         DateTime?
+  // Security
+  forcePasswordChange Boolean          @default(false)
+  passwordChangedAt   DateTime?
+  // Relationships
+  receipts            Receipt[]
+  redemptions         Redemption[]
+  auditLogs           AuditLog[]
+  gdprConsents        GdprConsent[]
+  departments         Department[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  deletedAt           DateTime?
+
+  @@unique([email, shopId]) // Email unique per tenant
+  @@index([shopId])
+  @@index([email])
+  @@map("users")
+}
+
+model Role {
+  id           String           @id @default(cuid())
+  name         String // super_admin, admin, user
+  displayName  String
+  description  String?
+  isSystemRole Boolean          @default(false) // Prevent deletion of pre-seeded roles
+  // Tenant scoping (null for global roles like super_admin)
+  shopId       String?
+  shop         Shop?            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  users        UserRole[]
+  permissions  RolePermission[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([name, shopId])
+  @@index([name])
+  @@index([shopId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  module      String // shops, vouchers, ads, receipts, redemptions, users, analytics
+  action      String // create, read, update, delete, approve, view_analytics, manage_users
+  description String
+  roles       RolePermission[]
+
+  @@unique([module, action])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId     String
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  assignedBy String? // User ID who assigned the role
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Session tokens (hashed)
+  accessTokenHash  String   @unique
+  refreshTokenHash String   @unique
+  // Session metadata
+  ipAddress        String
+  userAgent        String
+  // Tenant context
+  shopId           String?
+  expiresAt        DateTime
+  lastActivityAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@index([accessTokenHash])
+  @@index([refreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================
+// AUDIT LOGGING
+// ============================================
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  // Who
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail     String? // Preserved if user deleted
+  // Where (tenant context)
+  shopId        String?
+  shop          Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  // What
+  action        String // create, update, delete, approve, login, logout, etc.
+  resource      String // voucher, receipt, shop, user, etc.
+  resourceId    String?
+  // Changes (JSON diff for updates)
+  changesBefore Json?
+  changesAfter  Json?
+  // Context
+  ipAddress     String
+  userAgent     String
+  // Security flags
+  isSuspicious  Boolean  @default(false)
+  flagReason    String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@index([isSuspicious])
+  @@map("audit_logs")
+}
+
+// ============================================
+// GDPR COMPLIANCE
+// ============================================
+
+model GdprConsent {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopId      String
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  consentType ConsentType
+  granted     Boolean
+  ipAddress   String
+  userAgent   String
+  createdAt   DateTime    @default(now())
+  revokedAt   DateTime?
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([consentType])
+  @@map("gdpr_consents")
+}
+
+enum ConsentType {
+  ANALYTICS
+  MARKETING
+  DATA_PROCESSING
+}
+
+// ============================================
+// ENCRYPTED CONFIGURATIONS
+// ============================================
+
+model ShopConfig {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  key         String // smtp_password, api_key, etc.
+  value       String // Encrypted via middleware
+  isEncrypted Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, key])
+  @@index([shopId])
+  @@map("shop_configs")
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id         String    @id @default(cuid())
+  type       String // 'smtp', 'storage', 'sms', 'push', 'webhook', 'billing'
+  provider   String // 'ses', 'sendgrid', 'minio', 's3', 'twilio', 'fcm', 'stripe', 'paypal'
+  config     String    @db.Text // Encrypted JSON with API keys
+  isActive   Boolean   @default(false)
+  testResult String?   @db.Text // Last validation result
+  testedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([type, provider])
+  @@map("integrations")
+}
+
+// ============================================
+// BILLING
+// ============================================
+
+model BillingConfig {
+  id            String   @id @default(cuid())
+  provider      String // 'stripe', 'paypal', 'manual'
+  apiKey        String   @db.Text // Encrypted
+  webhookSecret String?  @db.Text // Encrypted
+  planTiers     String   @db.Text // JSON: [{ name, price, limits }]
+  usageMetrics  String   @db.Text // JSON: { shops, employees, vouchers }
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("billing_configs")
+}
+
+// ============================================
+// ORGANIZATION
+// ============================================
+
+model Department {
+  id         String   @id @default(cuid())
+  name       String
+  type       String // 'shop', 'warehouse', 'office'
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  locationId String?
+  location   Location? @relation(fields: [locationId], references: [id])
+  users      User[]
+  createdAt  DateTime @default(now())
+
+  @@map("departments")
+}
+
+model Location {
+  id          String       @id @default(cuid())
+  name        String
+  address     String
+  city        String
+  country     String
+  postalCode  String?
+  coordinates String? // PostGIS: "POINT(lon lat)"
+  departments Department[]
+  createdAt   DateTime     @default(now())
+
+  @@map("locations")
+}
+
+// ============================================
+// SECURITY POLICIES
+// ============================================
+
+model SecurityPolicy {
+  id                  String   @id @default(cuid())
+  minPasswordLength   Int      @default(12)
+  requireUppercase    Boolean  @default(true)
+  requireNumbers      Boolean  @default(true)
+  requireSpecialChars Boolean  @default(true)
+  sessionTimeout      Int      @default(3600) // seconds
+  ipWhitelist         String[] @default([])
+  dataRetentionDays   Int      @default(365)
+  mfaRequired         Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("security_policies")
+}
+
+// ============================================
+// TENANT-SCOPED RESOURCES: RECEIPTS
+// ============================================
+
+model Receipt {
+  id                String        @id @default(cuid())
+  shopId            String
+  shop              Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // MinIO storage path: tenant-{shopId}-receipts/{id}.jpg
+  minioPath         String
+  fileHash          String // SHA-256 for integrity verification
+  fileName          String?
+  fileSize          Int?
+  mimeType          String?
+  // Receipt data
+  receiptNumber     String?
+  receiptDate       DateTime?
+  totalAmount       Decimal?      @db.Decimal(10, 2)
+  currency          String        @default("USD")
+  merchantName      String?
+  // OCR data
+  ocrProcessed      Boolean       @default(false)
+  ocrData           Json?
+  ocrConfidence     Float?
+  // Fraud detection
+  isSuspicious      Boolean       @default(false)
+  fraudScore        Float?
+  fraudReason       String?
+  // Verification
+  verified          Boolean       @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?
+  // GDPR auto-delete
+  scheduledDeleteAt DateTime // Auto-calculated: uploadedAt + dataRetentionDays
+  deletedAt         DateTime?
+  // Relationships
+  vouchers          Voucher[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([shopId])
+  @@index([userId])
+  @@index([scheduledDeleteAt])
+  @@index([isSuspicious])
+  @@map("receipts")
+}
+
+// ============================================
+// TENANT-SCOPED RESOURCES: VOUCHERS
+// ============================================
+
+model Voucher {
+  id              String          @id @default(cuid())
+  shopId          String
+  shop            Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  receiptId       String?
+  receipt         Receipt?        @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  campaignId      String?
+  campaign        Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  code            String          @unique
+  type            String // DISCOUNT, FREE_ITEM, POINTS, etc.
+  discountPercent Decimal?        @db.Decimal(5, 2)
+  discountAmount  Decimal?        @db.Decimal(10, 2)
+  description     String
+  // Validity
+  validFrom       DateTime
+  validUntil      DateTime
+  // Usage
+  maxUses         Int             @default(1)
+  usedCount       Int             @default(0)
+  // Status
+  status          VoucherStatus   @default(ACTIVE)
+  // QR Code
+  qrCodeData      String? // Base64 QR code
+  // Relationships
+  redemptions     Redemption[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([shopId])
+  @@index([code])
+  @@index([status])
+  @@index([validFrom, validUntil])
+  @@map("vouchers")
+}
+
+enum VoucherStatus {
+  PENDING
+  ACTIVE
+  REDEEMED
+  EXPIRED
+  CANCELLED
+}
+
+// ============================================
+// TENANT-SCOPED RESOURCES: CAMPAIGNS
+// ============================================
+
+model Campaign {
+  id          String    @id @default(cuid())
+  shopId      String
+  name        String
+  description String?
+  // Campaign period
+  startDate   DateTime
+  endDate     DateTime
+  // Rules (stored as JSON for flexibility)
+  rules       Json
+  // Status
+  active      Boolean   @default(true)
+  vouchers    Voucher[]
+  ads         Ad[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("campaigns")
+}
+
+// ============================================
+// TENANT-SCOPED RESOURCES: REDEMPTIONS
+// ============================================
+
+model Redemption {
+  id           String           @id @default(cuid())
+  shopId       String
+  shop         Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voucherId    String
+  voucher      Voucher          @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  redeemValue  Decimal          @db.Decimal(10, 2)
+  status       RedemptionStatus @default(PENDING)
+  // High-value alert threshold
+  isHighValue  Boolean          @default(false)
+  // Metadata
+  redeemedAt   DateTime?
+  approvedAt   DateTime?
+  approvedBy   String?
+  rejectedAt   DateTime?
+  rejectionReason String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([shopId])
+  @@index([userId])
+  @@index([voucherId])
+  @@index([status])
+  @@index([isHighValue])
+  @@map("redemptions")
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// TENANT-SCOPED RESOURCES: ADVERTISEMENTS
+// ============================================
+
+model Ad {
+  id           String    @id @default(cuid())
+  shopId       String
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  title        String
+  description  String?
+  // MinIO storage: tenant-{shopId}-ads/{id}.jpg
+  minioPath    String
+  fileHash     String
+  // Display settings
+  displayOrder Int       @default(0)
+  active       Boolean   @default(true)
+  // Analytics
+  impressions  Int       @default(0)
+  clicks       Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([active])
+  @@index([displayOrder])
+  @@map("ads")
+}
+
+// ============================================
+// IMPORT LOGS
+// ============================================
+
+model ImportLog {
+  id           String   @id @default(cuid())
+  type         String // 'shops', 'employees', 'vouchers'
+  fileName     String
+  totalRows    Int
+  successCount Int
+  errorCount   Int
+  errors       String?  @db.Text // JSON array of errors
+  importedBy   String
+  createdAt    DateTime @default(now())
+
+  @@map("import_logs")
+}

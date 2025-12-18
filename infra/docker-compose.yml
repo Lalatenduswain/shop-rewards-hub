@@ -1,0 +1,337 @@
+version: '3.9'
+
+# ShopRewards Hub - Docker Compose Configuration
+# Development environment with all services
+
+networks:
+  shop-rewards-net:
+    driver: bridge
+  ollama-net:
+    external: true
+    name: ollama_default # Connect to existing ollama container
+
+volumes:
+  postgres-data:
+    driver: local
+  valkey-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+  minio-data:
+    driver: local
+  jenkins-data:
+    driver: local
+
+services:
+  # ============================================
+  # DATABASE: PostgreSQL 18.1
+  # ============================================
+  db:
+    image: postgres:18.1-alpine
+    container_name: shop-rewards-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-shoprewards}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword}
+      POSTGRES_DB: ${DB_NAME:-shoprewards}
+      POSTGRES_INITDB_ARGS: '-E UTF8 --locale=en_US.UTF-8'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../docker/db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    networks:
+      - shop-rewards-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-shoprewards}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # ============================================
+  # CACHE: Valkey 9.0.0 (Redis-compatible)
+  # ============================================
+  cache:
+    image: valkey/valkey:9.0.0-alpine
+    container_name: shop-rewards-cache
+    command: valkey-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - valkey-data:/data
+    ports:
+      - '${VALKEY_PORT:-6379}:6379'
+    networks:
+      - shop-rewards-net
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # QUEUE: RabbitMQ 4.2.1
+  # ============================================
+  queue:
+    image: rabbitmq:4.2.1-management-alpine
+    container_name: shop-rewards-queue
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-shoprewards}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-devpassword}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ../docker/queue/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - '${RABBITMQ_PORT:-5672}:5672'
+      - '${RABBITMQ_MGMT_PORT:-15672}:15672'
+    networks:
+      - shop-rewards-net
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # STORAGE: MinIO 2.0.4
+  # ============================================
+  storage:
+    image: minio/minio:RELEASE.2024-12-13T22-19-12Z
+    container_name: shop-rewards-storage
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-shoprewards}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-shoprewards123!}
+      MINIO_BROWSER: ${MINIO_BROWSER:-on}
+    volumes:
+      - minio-data:/data
+    ports:
+      - '${MINIO_API_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    networks:
+      - shop-rewards-net
+    command: server /data --console-address ':9001'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # API: Node.js 25.2.1 + tRPC
+  # ============================================
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api/Dockerfile
+      target: development
+      args:
+        NODE_VERSION: 20.19.5
+    image: shop-rewards-api:dev
+    container_name: shop-rewards-api
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${API_PORT:-4000}
+      # Database
+      DATABASE_URL: postgresql://${DB_USER:-shoprewards}:${DB_PASSWORD:-devpassword}@db:5432/${DB_NAME:-shoprewards}
+      # Services
+      VALKEY_URL: redis://cache:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-shoprewards}:${RABBITMQ_PASSWORD:-devpassword}@queue:5672
+      MINIO_ENDPOINT: storage
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-shoprewards}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-shoprewards123!}
+      OLLAMA_URL: http://ollama:11434
+      # Security
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      # Setup
+      SETUP_COMPLETED: ${SETUP_COMPLETED:-false}
+    volumes:
+      - ../apps/api:/app/apps/api
+      - ../packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    ports:
+      - '${API_PORT:-4000}:4000'
+    networks:
+      - shop-rewards-net
+      - ollama-net
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      queue:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    entrypoint: ['/app/docker/scripts/entrypoint-api.sh']
+    command: ['pnpm', 'run', 'dev', '--filter=@shop-rewards/api']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # WORKER: Background Job Processors
+  # ============================================
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/api/Dockerfile.worker
+      target: development
+    image: shop-rewards-worker:dev
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      # Database
+      DATABASE_URL: postgresql://${DB_USER:-shoprewards}:${DB_PASSWORD:-devpassword}@db:5432/${DB_NAME:-shoprewards}
+      # Services
+      VALKEY_URL: redis://cache:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-shoprewards}:${RABBITMQ_PASSWORD:-devpassword}@queue:5672
+      MINIO_ENDPOINT: storage
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-shoprewards}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-shoprewards123!}
+      OLLAMA_URL: http://ollama:11434
+      # Security
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      # Worker config
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+    volumes:
+      - ../apps/api:/app/apps/api
+      - ../packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    networks:
+      - shop-rewards-net
+      - ollama-net
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      queue:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+    entrypoint: ['/app/docker/scripts/entrypoint-worker.sh']
+    command: ['pnpm', 'run', 'worker', '--filter=@shop-rewards/api']
+    restart: unless-stopped
+    deploy:
+      replicas: 2 # Scale workers as needed
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # ============================================
+  # WEB: Next.js 16 Frontend
+  # ============================================
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web/Dockerfile
+      target: development
+      args:
+        NODE_VERSION: 20.19.5
+    image: shop-rewards-web:dev
+    container_name: shop-rewards-web
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-4000}
+      NEXTAUTH_URL: http://localhost:${WEB_PORT:-3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      SETUP_COMPLETED: ${SETUP_COMPLETED:-false}
+      NEXT_TELEMETRY_DISABLED: 1
+    volumes:
+      - ../apps/web:/app/apps/web
+      - ../packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    networks:
+      - shop-rewards-net
+    depends_on:
+      - api
+    entrypoint: ['/app/docker/scripts/entrypoint-web.sh']
+    command: ['pnpm', 'run', 'dev', '--filter=@shop-rewards/web']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # PROXY: Nginx with SSL
+  # ============================================
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: shop-rewards-proxy
+    volumes:
+      - ../docker/proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../docker/proxy/ssl:/etc/nginx/ssl:ro
+    ports:
+      - '${PROXY_HTTP_PORT:-80}:80'
+      - '${PROXY_HTTPS_PORT:-443}:443'
+    networks:
+      - shop-rewards-net
+    depends_on:
+      - web
+      - api
+    healthcheck:
+      test: ['CMD', 'nginx', '-t']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ============================================
+  # CI/CD: Jenkins
+  # ============================================
+  ci:
+    build:
+      context: ../docker/ci
+      dockerfile: Dockerfile
+    image: shop-rewards-jenkins:latest
+    container_name: shop-rewards-jenkins
+    privileged: true
+    environment:
+      JENKINS_OPTS: '--prefix=/jenkins'
+      JAVA_OPTS: '-Djenkins.install.runSetupWizard=false'
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../:/workspace
+    ports:
+      - '${JENKINS_PORT:-8080}:8080'
+      - '${JENKINS_AGENT_PORT:-50000}:50000'
+    networks:
+      - shop-rewards-net
+    restart: unless-stopped

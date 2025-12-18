@@ -1,0 +1,28 @@
+{
+  "name": "@shop-rewards/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./validators": "./src/validators/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "zod": "^3.22.4",
+    "zod-validation-error": "^2.1.0"
+  },
+  "devDependencies": {
+    "@shop-rewards/config": "workspace:*",
+    "@types/node": "^20.10.6",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  }
+}

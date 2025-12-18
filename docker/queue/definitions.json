@@ -1,0 +1,174 @@
+{
+  "rabbit_version": "4.2.1",
+  "rabbitmq_version": "4.2.1",
+  "users": [],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [],
+  "topic_permissions": [],
+  "parameters": [],
+  "global_parameters": [],
+  "policies": [],
+  "exchanges": [
+    {
+      "name": "shop-rewards.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "receipts.ocr",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-priority": 10
+      }
+    },
+    {
+      "name": "receipts.processing",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "vouchers.generation",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifications.email",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifications.sms",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifications.push",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "analytics.impressions",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "billing.webhooks",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "billing.subscriptions",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "gdpr.auto-delete",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "receipts.ocr",
+      "destination_type": "queue",
+      "routing_key": "receipt.uploaded",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "receipts.processing",
+      "destination_type": "queue",
+      "routing_key": "receipt.ocr.completed",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "vouchers.generation",
+      "destination_type": "queue",
+      "routing_key": "receipt.verified",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "notifications.email",
+      "destination_type": "queue",
+      "routing_key": "notification.email.*",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "notifications.sms",
+      "destination_type": "queue",
+      "routing_key": "notification.sms.*",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "notifications.push",
+      "destination_type": "queue",
+      "routing_key": "notification.push.*",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "analytics.impressions",
+      "destination_type": "queue",
+      "routing_key": "ad.viewed",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "billing.webhooks",
+      "destination_type": "queue",
+      "routing_key": "billing.webhook.*",
+      "arguments": {}
+    },
+    {
+      "source": "shop-rewards.events",
+      "vhost": "/",
+      "destination": "gdpr.auto-delete",
+      "destination_type": "queue",
+      "routing_key": "gdpr.schedule",
+      "arguments": {}
+    }
+  ]
+}

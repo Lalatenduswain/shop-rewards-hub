@@ -1,0 +1,82 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    ".env",
+    ".env.local",
+    "tsconfig.json"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "NEXT_PUBLIC_API_URL",
+    "ENCRYPTION_KEY",
+    "JWT_SECRET"
+  ],
+  "pipeline": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "!dist/**/*.map"
+      ],
+      "env": [
+        "NEXT_PUBLIC_API_URL",
+        "DATABASE_URL"
+      ]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": [
+        "build"
+      ],
+      "outputs": [
+        "coverage/**"
+      ],
+      "cache": false
+    },
+    "test:e2e": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": [
+        "node_modules/.prisma/**"
+      ]
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "db:migrate:deploy": {
+      "cache": false
+    },
+    "db:seed": {
+      "cache": false
+    },
+    "db:studio": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
