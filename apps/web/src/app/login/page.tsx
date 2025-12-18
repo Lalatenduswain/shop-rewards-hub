@@ -82,19 +82,81 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-lg">
-            <div>
-              <div className="text-3xl font-bold text-white mb-1">99.9%</div>
-              <div className="text-sm text-zinc-400">Uptime</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-white mb-1">256-bit</div>
-              <div className="text-sm text-zinc-400">Encryption</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-white mb-1">24/7</div>
-              <div className="text-sm text-zinc-400">Support</div>
+          {/* Customer Testimonials */}
+          <div className="max-w-lg space-y-6">
+            <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wide">
+              What Our Customers Say
+            </h3>
+
+            <div className="space-y-4">
+              {/* Testimonial 1 */}
+              <div className="bg-zinc-800/50 rounded-lg p-5 border border-zinc-700/50">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    LS
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold text-sm">Lalatendu Swain</h4>
+                    <p className="text-zinc-400 text-xs">Retail Chain Owner</p>
+                    <div className="flex gap-0.5 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  "ShopRewards transformed how we manage loyalty programs across our 12 stores. Customer engagement increased by 40% in just 3 months."
+                </p>
+              </div>
+
+              {/* Testimonial 2 */}
+              <div className="bg-zinc-800/50 rounded-lg p-5 border border-zinc-700/50">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    AS
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold text-sm">Aishwarya Sahoo</h4>
+                    <p className="text-zinc-400 text-xs">Boutique Manager</p>
+                    <div className="flex gap-0.5 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  "The digital voucher system is incredibly easy to use. Our customers love the convenience, and we've seen repeat purchases go up significantly."
+                </p>
+              </div>
+
+              {/* Testimonial 3 */}
+              <div className="bg-zinc-800/50 rounded-lg p-5 border border-zinc-700/50">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    RD
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-semibold text-sm">Rajesh Das</h4>
+                    <p className="text-zinc-400 text-xs">Supermarket Director</p>
+                    <div className="flex gap-0.5 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-3.5 h-3.5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                        </svg>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed">
+                  "Outstanding platform with excellent support. The analytics dashboard helps us understand customer behavior and optimize our campaigns."
+                </p>
+              </div>
             </div>
           </div>
         </div>
