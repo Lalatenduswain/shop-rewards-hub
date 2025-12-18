@@ -14,6 +14,7 @@ import { prisma } from '@shop-rewards/db';
 // Routes that should always be accessible (even when not configured)
 const PUBLIC_ROUTES = [
   '/setup',
+  '/setup/reset', // Allow wizard reset page
   '/api/trpc',
   '/_next',
   '/favicon.ico',

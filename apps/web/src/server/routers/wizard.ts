@@ -778,12 +778,47 @@ export const wizardRouter = createTRPCRouter({
         currentStep: state.currentStep ?? 1,
         completedSteps: [],
         systemConfigured: state.systemConfigured,
+        completedAt: state.completedAt,
       };
     } catch (error) {
       console.error('[Wizard] Get state error:', error);
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to get wizard state',
+      });
+    }
+  }),
+
+  /**
+   * Reset wizard to allow re-running setup
+   * WARNING: This is a development/testing tool - use with caution
+   */
+  resetWizard: publicProcedure.mutation(async ({ ctx }) => {
+    try {
+      console.log('[Wizard] Resetting wizard state...');
+
+      // Reset the wizard state
+      await ctx.db.setupWizardState.update({
+        where: { id: 'system' },
+        data: {
+          systemConfigured: false,
+          completedAt: null,
+          currentStep: 1,
+          completedSteps: [],
+        },
+      });
+
+      console.log('[Wizard] Wizard successfully reset');
+
+      return {
+        success: true,
+        message: 'Wizard has been reset. Redirecting to setup...',
+      };
+    } catch (error) {
+      console.error('[Wizard] Reset error:', error);
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to reset wizard',
       });
     }
   }),
