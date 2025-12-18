@@ -25,15 +25,14 @@ export default function LoginPage() {
       if (requiresMfa) {
         // Step 2: Login with MFA token
         const result = await loginWithMfaMutation.mutateAsync({
-          email,
-          password,
-          mfaToken,
+          userId: email, // TODO: Store userId from initial login
+          token: mfaToken,
         });
 
-        if (result.success && result.data?.accessToken) {
-          // Store token in localStorage
-          localStorage.setItem('accessToken', result.data.accessToken);
-          localStorage.setItem('refreshToken', result.data.refreshToken);
+        if (result?.accessToken) {
+          // Store tokens in localStorage
+          localStorage.setItem('accessToken', result.accessToken);
+          localStorage.setItem('refreshToken', result.refreshToken);
 
           // Redirect to admin dashboard
           router.push('/admin');
@@ -45,19 +44,17 @@ export default function LoginPage() {
           password,
         });
 
-        if (result.success) {
-          if (result.data?.requiresMfa) {
-            // MFA required - show MFA input
-            setRequiresMfa(true);
-          } else if (result.data?.accessToken) {
-            // Login successful - store token and redirect
-            localStorage.setItem('accessToken', result.data.accessToken);
-            localStorage.setItem('refreshToken', result.data.refreshToken);
+        if (result?.requiresMFA) {
+          // MFA required - show MFA input
+          setRequiresMfa(true);
+        } else if (result?.accessToken) {
+          // Login successful - store tokens and redirect
+          localStorage.setItem('accessToken', result.accessToken);
+          localStorage.setItem('refreshToken', result.refreshToken);
 
-            router.push('/admin');
-          }
+          router.push('/admin');
         } else {
-          setError(result.message || 'Login failed');
+          setError('Login failed - unexpected response');
         }
       }
     } catch (err: any) {
