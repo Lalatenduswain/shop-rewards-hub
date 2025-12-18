@@ -20,8 +20,9 @@ model SystemConfig {
   id          String   @id @default(cuid())
   key         String   @unique
   value       String?  @db.Text // Encrypted via middleware
+  description String? // Optional description of the config
   isEncrypted Boolean  @default(false)
-  category    String // 'company', 'database', 'integrations', 'security', 'billing'
+  category    String   @default("general") // 'company', 'database', 'integrations', 'security', 'billing'
   updatedAt   DateTime @updatedAt
   updatedBy   String?
 
@@ -33,7 +34,7 @@ model SetupWizardState {
   id               String    @id @default(cuid())
   currentStep      Int       @default(1)
   completedSteps   Int[]     @default([])
-  stateData        String    @db.Text // JSON snapshot for recovery
+  stateData        String?   @db.Text // JSON snapshot for recovery
   systemConfigured Boolean   @default(false)
   completedAt      DateTime?
   createdAt        DateTime  @default(now())
@@ -49,6 +50,7 @@ model Company {
   country      String
   timezone     String   @default("UTC")
   currency     String   @default("USD")
+  logo         String?  @db.Text // Base64 encoded logo or URL
   logoUrl      String?
   faviconUrl   String?
   customDomain String?  @unique
@@ -131,8 +133,10 @@ model User {
   id                  String           @id @default(cuid())
   email               String
   passwordHash        String
+  name                String? // Full name for convenience
   firstName           String
   lastName            String
+  isSuperAdmin        Boolean          @default(false) // Platform-wide admin flag
   // Tenant relationship (nullable for super_admin)
   shopId              String?
   shop                Shop?            @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -406,17 +410,19 @@ model Location {
 // ============================================
 
 model SecurityPolicy {
-  id                  String   @id @default(cuid())
-  minPasswordLength   Int      @default(12)
-  requireUppercase    Boolean  @default(true)
-  requireNumbers      Boolean  @default(true)
-  requireSpecialChars Boolean  @default(true)
-  sessionTimeout      Int      @default(3600) // seconds
-  ipWhitelist         String[] @default([])
-  dataRetentionDays   Int      @default(365)
-  mfaRequired         Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  minPasswordLength     Int      @default(12)
+  passwordExpiry        Int?     @default(90) // Days until password expires (null = never)
+  requireUppercase      Boolean  @default(true)
+  requireNumbers        Boolean  @default(true)
+  requireSpecialChars   Boolean  @default(true)
+  sessionTimeout        Int      @default(3600) // seconds
+  maxConcurrentSessions Int      @default(5)
+  ipWhitelist           String[] @default([])
+  dataRetentionDays     Int      @default(365)
+  mfaRequired           Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@map("security_policies")
 }

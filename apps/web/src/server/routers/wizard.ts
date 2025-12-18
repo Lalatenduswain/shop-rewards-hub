@@ -32,6 +32,7 @@ import {
   launchSchema,
 } from '@shop-rewards/shared';
 import { TRPCError } from '@trpc/server';
+import { hash } from 'bcrypt';
 
 export const wizardRouter = createTRPCRouter({
   /**
@@ -39,21 +40,42 @@ export const wizardRouter = createTRPCRouter({
    */
   saveCompanySetup: publicProcedure
     .input(companySetupSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        // TODO: Implement Prisma upsert to Company table
-        // const company = await ctx.db.company.upsert({
-        //   where: { id: 'system' },
-        //   update: input,
-        //   create: input,
-        // });
+        // Create or update company information
+        const company = await ctx.db.company.upsert({
+          where: { id: 'system' },
+          update: {
+            name: input.name,
+            industry: input.industry,
+            country: input.country,
+            timezone: input.timezone,
+            currency: input.currency,
+            logo: input.logo,
+          },
+          create: {
+            id: 'system',
+            name: input.name,
+            industry: input.industry,
+            country: input.country,
+            timezone: input.timezone,
+            currency: input.currency,
+            logo: input.logo,
+          },
+        });
 
-        console.log('[Wizard] Step 1: Company Setup', input);
+        console.log('[Wizard] Step 1: Company Setup', {
+          id: company.id,
+          name: company.name,
+        });
 
         return {
           success: true,
           message: 'Company setup saved successfully',
-          data: input,
+          data: {
+            id: company.id,
+            name: company.name,
+          },
         };
       } catch (error) {
         console.error('[Wizard] Company setup error:', error);
@@ -69,35 +91,96 @@ export const wizardRouter = createTRPCRouter({
    */
   createAdminUser: publicProcedure
     .input(adminUserSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        // TODO: Implement admin user creation with password hashing
-        // const hashedPassword = await bcrypt.hash(input.password, 12);
-        // const user = await ctx.db.user.create({
-        //   data: {
-        //     name: input.name,
-        //     email: input.email,
-        //     passwordHash: hashedPassword,
-        //     mfaSecret: input.mfaEnabled ? generateMFASecret() : null,
-        //   },
-        // });
+        // Check if admin user already exists (for super admin, shopId is null)
+        // Note: Compound unique keys with nullable fields require findFirst
+        const existingUser = await ctx.db.user.findFirst({
+          where: {
+            email: input.email,
+            shopId: null,
+          },
+        });
 
-        console.log('[Wizard] Step 2: Admin User', {
-          ...input,
-          password: '[REDACTED]',
+        if (existingUser) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'User with this email already exists',
+          });
+        }
+
+        // Hash password with bcrypt
+        const passwordHash = await hash(input.password, 12);
+
+        // Split name into firstName and lastName
+        const nameParts = input.name.trim().split(' ');
+        const firstName = nameParts[0] || input.name;
+        const lastName = nameParts.slice(1).join(' ') || input.name;
+
+        // Create admin user
+        const user = await ctx.db.user.create({
+          data: {
+            email: input.email,
+            passwordHash,
+            name: input.name,
+            firstName,
+            lastName,
+            isSuperAdmin: true, // First user is super admin
+            shopId: null, // Super admin is not tied to any shop
+            // MFA will be configured later if enabled
+            // mfaSecret: input.mfaEnabled ? generateMFASecret() : null,
+          },
+        });
+
+        // Create super_admin role if it doesn't exist
+        // Note: For compound unique keys with nullable fields, we need to use findFirst + create pattern
+        let superAdminRole = await ctx.db.role.findFirst({
+          where: {
+            name: 'super_admin',
+            shopId: null,
+          },
+        });
+
+        if (!superAdminRole) {
+          superAdminRole = await ctx.db.role.create({
+            data: {
+              name: 'super_admin',
+              displayName: 'Super Administrator',
+              description: 'Platform-wide administrator with access to all tenants',
+              isSystemRole: true,
+              shopId: null,
+            },
+          });
+        }
+
+        // Assign super_admin role to user
+        await ctx.db.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: superAdminRole.id,
+          },
+        });
+
+        console.log('[Wizard] Step 2: Admin User Created', {
+          id: user.id,
+          email: user.email,
         });
 
         return {
           success: true,
           message: 'Admin user created successfully',
           data: {
-            name: input.name,
-            email: input.email,
+            id: user.id,
+            name: user.name || `${user.firstName} ${user.lastName}`,
+            email: user.email,
             mfaEnabled: input.mfaEnabled,
           },
         };
       } catch (error) {
         console.error('[Wizard] Admin user creation error:', error);
+        if (error instanceof TRPCError) {
+          throw error;
+        }
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to create admin user',
@@ -110,14 +193,32 @@ export const wizardRouter = createTRPCRouter({
    */
   saveBranding: publicProcedure
     .input(brandingSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
+        // Save branding as system configuration
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'branding' },
+          update: {
+            value: JSON.stringify(input),
+            isEncrypted: false,
+          },
+          create: {
+            key: 'branding',
+            value: JSON.stringify(input),
+            description: 'Platform branding configuration',
+            isEncrypted: false,
+          },
+        });
+
         // TODO: Verify custom domain DNS (if provided)
         // if (input.customDomain) {
         //   await verifyDNSRecord(input.customDomain);
         // }
 
-        console.log('[Wizard] Step 3: Branding', input);
+        console.log('[Wizard] Step 3: Branding', {
+          hasCustomDomain: !!input.customDomain,
+          hasFavicon: !!input.favicon,
+        });
 
         return {
           success: true,
@@ -138,10 +239,27 @@ export const wizardRouter = createTRPCRouter({
    */
   saveAppConfig: publicProcedure
     .input(appConfigSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        // TODO: Update system configuration in database
-        console.log('[Wizard] Step 4: App Config', input);
+        // Save app config as system configuration
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'app_config' },
+          update: {
+            value: JSON.stringify(input),
+            isEncrypted: false,
+          },
+          create: {
+            key: 'app_config',
+            value: JSON.stringify(input),
+            description: 'Application configuration',
+            isEncrypted: false,
+          },
+        });
+
+        console.log('[Wizard] Step 4: App Config', {
+          language: input.language,
+          moduleCount: input.enabledModules.length,
+        });
 
         return {
           success: true,
@@ -162,10 +280,40 @@ export const wizardRouter = createTRPCRouter({
    */
   saveSecuritySettings: publicProcedure
     .input(securitySchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        // TODO: Update security policies in database
-        console.log('[Wizard] Step 5: Security Settings', input);
+        // Save security settings as SecurityPolicy
+        await ctx.db.securityPolicy.upsert({
+          where: { id: 'system' },
+          update: {
+            minPasswordLength: input.minPasswordLength,
+            passwordExpiry: input.passwordExpiry,
+            requireUppercase: input.requireUppercase ?? false,
+            requireNumbers: input.requireNumbers ?? false,
+            requireSpecialChars: input.requireSpecialChars ?? false,
+            sessionTimeout: input.sessionTimeout,
+            maxConcurrentSessions: input.maxConcurrentSessions,
+            ipWhitelist: input.ipWhitelist ? input.ipWhitelist.split('\n') : [],
+            dataRetentionDays: input.dataRetentionDays,
+          },
+          create: {
+            id: 'system',
+            minPasswordLength: input.minPasswordLength,
+            passwordExpiry: input.passwordExpiry,
+            requireUppercase: input.requireUppercase ?? false,
+            requireNumbers: input.requireNumbers ?? false,
+            requireSpecialChars: input.requireSpecialChars ?? false,
+            sessionTimeout: input.sessionTimeout,
+            maxConcurrentSessions: input.maxConcurrentSessions,
+            ipWhitelist: input.ipWhitelist ? input.ipWhitelist.split('\n') : [],
+            dataRetentionDays: input.dataRetentionDays,
+          },
+        });
+
+        console.log('[Wizard] Step 5: Security Settings', {
+          minPasswordLength: input.minPasswordLength,
+          sessionTimeout: input.sessionTimeout,
+        });
 
         return {
           success: true,
@@ -186,17 +334,30 @@ export const wizardRouter = createTRPCRouter({
    */
   saveEmailIntegration: publicProcedure
     .input(integrationSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
         // TODO: Test SMTP connection before saving
         // await testSMTPConnection(input);
 
-        // TODO: Encrypt SMTP password before storing
-        // const encryptedPassword = await encrypt(input.smtpPassword);
+        // Save SMTP config as encrypted system configuration
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'smtp_config' },
+          update: {
+            value: JSON.stringify(input),
+            isEncrypted: true, // Password will be encrypted by middleware
+          },
+          create: {
+            key: 'smtp_config',
+            value: JSON.stringify(input),
+            description: 'SMTP email configuration',
+            isEncrypted: true,
+          },
+        });
 
         console.log('[Wizard] Step 6: Email Integration', {
-          ...input,
-          smtpPassword: '[REDACTED]',
+          host: input.smtpHost,
+          port: input.smtpPort,
+          encryption: input.smtpEncryption,
         });
 
         return {
@@ -250,8 +411,31 @@ export const wizardRouter = createTRPCRouter({
    */
   configureDatabaseTarget: publicProcedure
     .input(databaseSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
+        // Save database config
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'database_config' },
+          update: {
+            value: JSON.stringify({
+              target: input.target,
+              provider: input.provider,
+              validated: input.validated,
+            }),
+            isEncrypted: false,
+          },
+          create: {
+            key: 'database_config',
+            value: JSON.stringify({
+              target: input.target,
+              provider: input.provider,
+              validated: input.validated,
+            }),
+            description: 'Database configuration',
+            isEncrypted: false,
+          },
+        });
+
         // TODO: Implement database connection test and migration runner
         // if (input.target === 'managed' && input.connectionString) {
         //   await testDatabaseConnection(input.connectionString);
@@ -259,18 +443,17 @@ export const wizardRouter = createTRPCRouter({
         // }
 
         console.log('[Wizard] Step 7: Database Target', {
-          ...input,
-          connectionString: input.connectionString
-            ? '[REDACTED]'
-            : undefined,
+          target: input.target,
+          provider: input.provider,
         });
 
         return {
           success: true,
           message: 'Database target configured successfully',
           data: {
-            ...input,
-            connectionString: undefined, // Don't send connection string back
+            target: input.target,
+            provider: input.provider,
+            validated: input.validated,
           },
         };
       } catch (error) {
@@ -317,14 +500,44 @@ export const wizardRouter = createTRPCRouter({
    */
   configureRBAC: publicProcedure
     .input(rbacSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
-        // TODO: Seed default roles and permissions if useDefaults = true
-        // if (input.useDefaults) {
-        //   await seedDefaultRoles();
-        // }
+        if (input.useDefaults) {
+          // Seed default permissions
+          const defaultPermissions = [
+            { module: 'shops', action: 'create', description: 'Create new shops' },
+            { module: 'shops', action: 'read', description: 'View shop details' },
+            { module: 'shops', action: 'update', description: 'Update shop settings' },
+            { module: 'shops', action: 'delete', description: 'Delete shops' },
+            { module: 'users', action: 'create', description: 'Create new users' },
+            { module: 'users', action: 'read', description: 'View user list' },
+            { module: 'users', action: 'update', description: 'Update user details' },
+            { module: 'users', action: 'delete', description: 'Delete users' },
+            { module: 'vouchers', action: 'create', description: 'Create vouchers' },
+            { module: 'vouchers', action: 'read', description: 'View vouchers' },
+            { module: 'vouchers', action: 'update', description: 'Update vouchers' },
+            { module: 'vouchers', action: 'delete', description: 'Delete vouchers' },
+            { module: 'receipts', action: 'create', description: 'Upload receipts' },
+            { module: 'receipts', action: 'read', description: 'View receipts' },
+            { module: 'analytics', action: 'view_dashboard', description: 'View analytics' },
+          ];
 
-        console.log('[Wizard] Step 8: RBAC Configuration', input);
+          // Create permissions
+          for (const perm of defaultPermissions) {
+            await ctx.db.permission.upsert({
+              where: {
+                module_action: {
+                  module: perm.module,
+                  action: perm.action,
+                },
+              },
+              update: {},
+              create: perm,
+            });
+          }
+
+          console.log('[Wizard] Step 8: Seeded default RBAC permissions');
+        }
 
         return {
           success: true,
@@ -345,10 +558,28 @@ export const wizardRouter = createTRPCRouter({
    */
   saveOrganizationStructure: publicProcedure
     .input(organizationSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
+        // Save organization structure as system config
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'organization_structure' },
+          update: {
+            value: JSON.stringify(input),
+            isEncrypted: false,
+          },
+          create: {
+            key: 'organization_structure',
+            value: JSON.stringify(input),
+            description: 'Organization structure (departments and locations)',
+            isEncrypted: false,
+          },
+        });
+
         // TODO: Create departments and locations in database
-        console.log('[Wizard] Step 9: Organization Structure', input);
+        console.log('[Wizard] Step 9: Organization Structure', {
+          departmentCount: input.departments?.length ?? 0,
+          locationCount: input.locations?.length ?? 0,
+        });
 
         return {
           success: true,
@@ -407,18 +638,39 @@ export const wizardRouter = createTRPCRouter({
    */
   configureBilling: publicProcedure
     .input(billingSchema)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       try {
+        // Save billing config as encrypted system configuration
+        await ctx.db.systemConfig.upsert({
+          where: { key: 'billing_config' },
+          update: {
+            value: JSON.stringify({
+              provider: input.provider,
+              // apiKey and webhookSecret will be encrypted by middleware
+              apiKey: input.apiKey,
+              webhookSecret: input.webhookSecret,
+            }),
+            isEncrypted: true,
+          },
+          create: {
+            key: 'billing_config',
+            value: JSON.stringify({
+              provider: input.provider,
+              apiKey: input.apiKey,
+              webhookSecret: input.webhookSecret,
+            }),
+            description: 'Billing and payment provider configuration',
+            isEncrypted: true,
+          },
+        });
+
         // TODO: Validate payment provider API keys
         // if (input.provider === 'stripe' && input.apiKey) {
         //   await validateStripeKey(input.apiKey);
         // }
 
-        // TODO: Encrypt API keys before storing
         console.log('[Wizard] Step 11: Billing Configuration', {
-          ...input,
-          apiKey: input.apiKey ? '[REDACTED]' : undefined,
-          webhookSecret: input.webhookSecret ? '[REDACTED]' : undefined,
+          provider: input.provider,
         });
 
         return {
@@ -470,13 +722,21 @@ export const wizardRouter = createTRPCRouter({
    */
   finalizeLaunch: publicProcedure
     .input(launchSchema)
-    .mutation(async () => {
+    .mutation(async ({ ctx }) => {
       try {
-        // TODO: Mark wizard as completed in database
-        // await ctx.db.setupWizardState.update({
-        //   where: { id: 'system' },
-        //   data: { systemConfigured: true, completedAt: new Date() },
-        // });
+        // Mark wizard as completed in database
+        await ctx.db.setupWizardState.upsert({
+          where: { id: 'system' },
+          update: {
+            systemConfigured: true,
+            completedAt: new Date(),
+          },
+          create: {
+            id: 'system',
+            systemConfigured: true,
+            completedAt: new Date(),
+          },
+        });
 
         console.log('[Wizard] Step 12: Launch Finalized');
 
@@ -499,17 +759,25 @@ export const wizardRouter = createTRPCRouter({
   /**
    * Get current wizard state/progress
    */
-  getWizardState: publicProcedure.query(async () => {
+  getWizardState: publicProcedure.query(async ({ ctx }) => {
     try {
-      // TODO: Fetch from database
-      // const state = await ctx.db.setupWizardState.findUnique({
-      //   where: { id: 'system' },
-      // });
+      // Fetch wizard state from database
+      const state = await ctx.db.setupWizardState.findUnique({
+        where: { id: 'system' },
+      });
+
+      if (!state) {
+        return {
+          currentStep: 1,
+          completedSteps: [],
+          systemConfigured: false,
+        };
+      }
 
       return {
-        currentStep: 1,
+        currentStep: state.currentStep ?? 1,
         completedSteps: [],
-        systemConfigured: false,
+        systemConfigured: state.systemConfigured,
       };
     } catch (error) {
       console.error('[Wizard] Get state error:', error);
