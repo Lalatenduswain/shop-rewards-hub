@@ -39,13 +39,17 @@ export default function LoginPage() {
           password,
         });
 
+        console.log('[Login Page] Login result:', result);
+
         if (result?.requiresMFA) {
           setRequiresMfa(true);
         } else if (result?.accessToken) {
           localStorage.setItem('accessToken', result.accessToken);
           localStorage.setItem('refreshToken', result.refreshToken);
+          console.log('[Login Page] Tokens stored, redirecting to /admin');
           router.push('/admin');
         } else {
+          console.error('[Login Page] Unexpected response structure:', result);
           setError('Login failed - unexpected response');
         }
       }
