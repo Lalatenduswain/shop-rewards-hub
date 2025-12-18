@@ -19,7 +19,6 @@ export function Step10DataImport() {
 
   const {
     register,
-
     watch,
     formState: { errors, isValid },
   } = useForm<DataImport>({
@@ -27,14 +26,6 @@ export function Step10DataImport() {
     defaultValues: dataImport,
     mode: 'onChange',
   });
-
-  const formValues = watch();
-
-  useEffect(() => {
-    if (formValues) {
-      setDataImportData(formValues);
-    }
-  }, [formValues, setDataImportData]);
 
   useEffect(() => {
     // Mark as completed even if no files uploaded (optional step)
