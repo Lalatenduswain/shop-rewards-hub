@@ -13,7 +13,7 @@ export function Step03Branding() {
 
   const {
     register,
-
+    handleSubmit,
     watch,
     formState: { errors, isValid },
   } = useForm<Branding>({
@@ -22,15 +22,8 @@ export function Step03Branding() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const primaryColor = watch('primaryColor');
   const secondaryColor = watch('secondaryColor');
-
-  useEffect(() => {
-    if (formValues) {
-      setBrandingData(formValues);
-    }
-  }, [formValues, setBrandingData]);
 
   useEffect(() => {
     if (isValid) {
@@ -38,8 +31,13 @@ export function Step03Branding() {
     }
   }, [isValid, markStepCompleted]);
 
+  // Save form data
+  const saveFormData = (data: Branding) => {
+    setBrandingData(data);
+  };
+
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Custom Domain */}
         <div className="col-span-2">
@@ -50,6 +48,7 @@ export function Step03Branding() {
             id="customDomain"
             type="text"
             {...register('customDomain')}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="rewards.yourcompany.com"
           />
@@ -70,6 +69,7 @@ export function Step03Branding() {
             id="emailSenderName"
             type="text"
             {...register('emailSenderName')}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Acme Rewards Team"
           />
@@ -187,6 +187,6 @@ export function Step03Branding() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

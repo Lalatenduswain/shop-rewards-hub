@@ -16,7 +16,7 @@ export function Step11Billing() {
 
   const {
     register,
-
+    handleSubmit,
     watch,
     formState: { errors, isValid },
   } = useForm<Billing>({
@@ -25,14 +25,7 @@ export function Step11Billing() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const provider = watch('provider');
-
-  useEffect(() => {
-    if (formValues) {
-      setBillingData(formValues);
-    }
-  }, [formValues, setBillingData]);
 
   useEffect(() => {
     if (isValid && (provider === 'manual' || testStatus === 'success')) {
@@ -40,13 +33,20 @@ export function Step11Billing() {
     }
   }, [isValid, provider, testStatus, markStepCompleted]);
 
+  // Save form data
+  const saveFormData = (data: Billing) => {
+    setBillingData(data);
+  };
+
   const testProviderMutation = trpc.wizard.testPaymentProvider.useMutation();
 
   const handleTestProvider = async () => {
+    if (!billing) return;
+
     setTestStatus('testing');
 
     try {
-      const result = await testProviderMutation.mutateAsync(formValues);
+      const result = await testProviderMutation.mutateAsync(billing);
 
       if (result.success) {
         setTestStatus('success');
@@ -60,7 +60,7 @@ export function Step11Billing() {
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-800 dark:text-blue-200">
           Configure billing and payment processing for your platform. This enables subscription management and payment collection.
@@ -80,7 +80,10 @@ export function Step11Billing() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setBillingData({ provider: 'stripe' })}
+            onClick={() => {
+              setBillingData({ provider: 'stripe' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -105,7 +108,10 @@ export function Step11Billing() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setBillingData({ provider: 'paypal' })}
+            onClick={() => {
+              setBillingData({ provider: 'paypal' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -130,7 +136,10 @@ export function Step11Billing() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setBillingData({ provider: 'manual' })}
+            onClick={() => {
+              setBillingData({ provider: 'manual' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -168,6 +177,7 @@ export function Step11Billing() {
                 id="apiKey"
                 type={showApiKey ? 'text' : 'password'}
                 {...register('apiKey')}
+                onBlur={handleSubmit(saveFormData)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 font-mono text-sm"
                 placeholder="sk_live_..."
               />
@@ -196,6 +206,7 @@ export function Step11Billing() {
               id="webhookSecret"
               type="text"
               {...register('webhookSecret')}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="whsec_..."
             />
@@ -220,6 +231,7 @@ export function Step11Billing() {
               id="apiKey"
               type="text"
               {...register('apiKey')}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="AYSq3RDGsmBLJ..."
             />
@@ -238,6 +250,7 @@ export function Step11Billing() {
                 id="webhookSecret"
                 type={showApiKey ? 'text' : 'password'}
                 {...register('webhookSecret')}
+                onBlur={handleSubmit(saveFormData)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 font-mono text-sm"
                 placeholder="EO422dn..."
               />
@@ -304,6 +317,6 @@ export function Step11Billing() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

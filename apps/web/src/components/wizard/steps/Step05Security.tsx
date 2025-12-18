@@ -13,8 +13,7 @@ export function Step05Security() {
 
   const {
     register,
-
-    watch,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<Security>({
     resolver: zodResolver(securitySchema),
@@ -22,22 +21,19 @@ export function Step05Security() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
-
-  useEffect(() => {
-    if (formValues) {
-      setSecurityData(formValues);
-    }
-  }, [formValues, setSecurityData]);
-
   useEffect(() => {
     if (isValid) {
       markStepCompleted(5);
     }
   }, [isValid, markStepCompleted]);
 
+  // Save form data
+  const saveFormData = (data: Security) => {
+    setSecurityData(data);
+  };
+
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       {/* Password Policy */}
       <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Password Policy</h3>
@@ -52,6 +48,7 @@ export function Step05Security() {
               min="8"
               max="32"
               {...register('minPasswordLength', { valueAsNumber: true })}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {errors.minPasswordLength && (
@@ -69,6 +66,7 @@ export function Step05Security() {
               min="0"
               max="365"
               {...register('passwordExpiry', { valueAsNumber: true })}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {errors.passwordExpiry && (
@@ -83,6 +81,7 @@ export function Step05Security() {
                 id="requireUppercase"
                 type="checkbox"
                 {...register('requireUppercase')}
+                onChange={handleSubmit(saveFormData)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="requireUppercase" className="text-sm text-gray-700 dark:text-gray-300">
@@ -94,6 +93,7 @@ export function Step05Security() {
                 id="requireNumbers"
                 type="checkbox"
                 {...register('requireNumbers')}
+                onChange={handleSubmit(saveFormData)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="requireNumbers" className="text-sm text-gray-700 dark:text-gray-300">
@@ -105,6 +105,7 @@ export function Step05Security() {
                 id="requireSpecialChars"
                 type="checkbox"
                 {...register('requireSpecialChars')}
+                onChange={handleSubmit(saveFormData)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <label htmlFor="requireSpecialChars" className="text-sm text-gray-700 dark:text-gray-300">
@@ -129,6 +130,7 @@ export function Step05Security() {
               min="5"
               max="1440"
               {...register('sessionTimeout', { valueAsNumber: true })}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {errors.sessionTimeout && (
@@ -147,6 +149,7 @@ export function Step05Security() {
               min="1"
               max="10"
               {...register('maxConcurrentSessions', { valueAsNumber: true })}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             {errors.maxConcurrentSessions && (
@@ -166,6 +169,7 @@ export function Step05Security() {
           <textarea
             id="ipWhitelist"
             {...register('ipWhitelist')}
+            onBlur={handleSubmit(saveFormData)}
             rows={3}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="192.168.1.1&#10;10.0.0.0/24&#10;2001:db8::1"
@@ -192,6 +196,7 @@ export function Step05Security() {
             min="1"
             max="3650"
             {...register('dataRetentionDays', { valueAsNumber: true })}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           {errors.dataRetentionDays && (
@@ -211,6 +216,6 @@ export function Step05Security() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

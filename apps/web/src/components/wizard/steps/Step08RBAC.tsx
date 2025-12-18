@@ -40,7 +40,7 @@ export function Step08RBAC() {
 
   const {
     register,
-
+    handleSubmit,
     watch,
     setValue,
     formState: { errors, isValid },
@@ -50,14 +50,7 @@ export function Step08RBAC() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const useDefaults = watch('useDefaults');
-
-  useEffect(() => {
-    if (formValues) {
-      setRbacData(formValues);
-    }
-  }, [formValues, setRbacData]);
 
   useEffect(() => {
     if (isValid) {
@@ -65,8 +58,13 @@ export function Step08RBAC() {
     }
   }, [isValid, markStepCompleted]);
 
+  // Save form data
+  const saveFormData = (data: RBAC) => {
+    setRbacData(data);
+  };
+
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-800 dark:text-blue-200">
           Configure Role-Based Access Control (RBAC) for your platform. You can use default roles or create custom ones.
@@ -80,6 +78,7 @@ export function Step08RBAC() {
             id="useDefaults"
             type="checkbox"
             {...register('useDefaults')}
+            onChange={handleSubmit(saveFormData)}
             className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <div className="flex-1">
@@ -163,7 +162,10 @@ export function Step08RBAC() {
             </p>
             <button
               type="button"
-              onClick={() => setValue('useDefaults', true)}
+              onClick={() => {
+                setValue('useDefaults', true);
+                handleSubmit(saveFormData)();
+              }}
               className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
             >
               Use Default Roles Instead
@@ -209,6 +211,6 @@ export function Step08RBAC() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

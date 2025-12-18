@@ -17,8 +17,7 @@ export function Step09Organization() {
 
   const {
     register,
-
-    watch,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<Organization>({
     resolver: zodResolver(organizationSchema),
@@ -26,19 +25,21 @@ export function Step09Organization() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
-
-  useEffect(() => {
-    if (formValues) {
-      setOrganizationData({ ...formValues, departments, locations });
-    }
-  }, [formValues, departments, locations, setOrganizationData]);
-
   useEffect(() => {
     if (isValid) {
       markStepCompleted(9);
     }
   }, [isValid, markStepCompleted]);
+
+  // Save form data including departments and locations
+  const saveFormData = (data: Organization) => {
+    setOrganizationData({ ...data, departments, locations });
+  };
+
+  // Save when departments or locations change
+  useEffect(() => {
+    handleSubmit(saveFormData)();
+  }, [departments, locations]);
 
   const addDepartment = () => {
     if (newDepartment.trim() && !departments.includes(newDepartment.trim())) {
@@ -65,7 +66,7 @@ export function Step09Organization() {
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-800 dark:text-blue-200">
           Define your organization structure with departments and locations (optional). This helps with reporting and access control.
@@ -195,6 +196,6 @@ export function Step09Organization() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

@@ -22,7 +22,7 @@ export function Step04AppConfig() {
 
   const {
     register,
-
+    handleSubmit,
     watch,
     setValue,
     formState: { errors, isValid },
@@ -32,14 +32,7 @@ export function Step04AppConfig() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const enabledModules = watch('enabledModules') || [];
-
-  useEffect(() => {
-    if (formValues) {
-      setAppConfigData(formValues);
-    }
-  }, [formValues, setAppConfigData]);
 
   useEffect(() => {
     if (isValid) {
@@ -47,16 +40,22 @@ export function Step04AppConfig() {
     }
   }, [isValid, markStepCompleted]);
 
+  // Save form data
+  const saveFormData = (data: AppConfig) => {
+    setAppConfigData(data);
+  };
+
   const toggleModule = (moduleId: string) => {
     const current = enabledModules || [];
     const updated = current.includes(moduleId)
       ? current.filter((m) => m !== moduleId)
       : [...current, moduleId];
     setValue('enabledModules', updated, { shouldValidate: true });
+    handleSubmit(saveFormData)();
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Language */}
         <div>
@@ -66,6 +65,7 @@ export function Step04AppConfig() {
           <select
             id="language"
             {...register('language')}
+            onChange={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="en">English</option>
@@ -88,6 +88,7 @@ export function Step04AppConfig() {
           <select
             id="dateFormat"
             {...register('dateFormat')}
+            onChange={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="MM/DD/YYYY">MM/DD/YYYY (12/31/2025)</option>
@@ -153,6 +154,7 @@ export function Step04AppConfig() {
               id="notifyEmail"
               type="checkbox"
               {...register('notifyEmail')}
+              onChange={handleSubmit(saveFormData)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <label htmlFor="notifyEmail" className="text-sm text-gray-700 dark:text-gray-300">
@@ -164,6 +166,7 @@ export function Step04AppConfig() {
               id="notifySms"
               type="checkbox"
               {...register('notifySms')}
+              onChange={handleSubmit(saveFormData)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <label htmlFor="notifySms" className="text-sm text-gray-700 dark:text-gray-300">
@@ -175,6 +178,7 @@ export function Step04AppConfig() {
               id="notifyPush"
               type="checkbox"
               {...register('notifyPush')}
+              onChange={handleSubmit(saveFormData)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             />
             <label htmlFor="notifyPush" className="text-sm text-gray-700 dark:text-gray-300">
@@ -192,6 +196,6 @@ export function Step04AppConfig() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }

@@ -15,8 +15,7 @@ export function Step06EmailIntegration() {
 
   const {
     register,
-
-    watch,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<Integration>({
     resolver: zodResolver(integrationSchema),
@@ -24,19 +23,16 @@ export function Step06EmailIntegration() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
-
-  useEffect(() => {
-    if (formValues) {
-      setIntegrationData(formValues);
-    }
-  }, [formValues, setIntegrationData]);
-
   useEffect(() => {
     if (isValid && testStatus === 'success') {
       markStepCompleted(6);
     }
   }, [isValid, testStatus, markStepCompleted]);
+
+  // Save form data
+  const saveFormData = (data: Integration) => {
+    setIntegrationData(data);
+  };
 
   const handleTestSmtp = async () => {
     setTestStatus('testing');
@@ -47,7 +43,7 @@ export function Step06EmailIntegration() {
   };
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-800 dark:text-blue-200">
           Configure SMTP to send email notifications for vouchers, receipts, and system alerts.
@@ -64,6 +60,7 @@ export function Step06EmailIntegration() {
             id="smtpHost"
             type="text"
             {...register('smtpHost')}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="smtp.gmail.com"
           />
@@ -81,6 +78,7 @@ export function Step06EmailIntegration() {
             id="smtpPort"
             type="number"
             {...register('smtpPort', { valueAsNumber: true })}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="587"
           />
@@ -101,6 +99,7 @@ export function Step06EmailIntegration() {
             id="smtpUsername"
             type="text"
             {...register('smtpUsername')}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="user@example.com"
           />
@@ -119,6 +118,7 @@ export function Step06EmailIntegration() {
               id="smtpPassword"
               type={showPassword ? 'text' : 'password'}
               {...register('smtpPassword')}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
               placeholder="••••••••"
             />
@@ -146,6 +146,7 @@ export function Step06EmailIntegration() {
                 id="smtpTls"
                 type="radio"
                 {...register('smtpEncryption')}
+                onChange={handleSubmit(saveFormData)}
                 value="tls"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
               />
@@ -158,6 +159,7 @@ export function Step06EmailIntegration() {
                 id="smtpSsl"
                 type="radio"
                 {...register('smtpEncryption')}
+                onChange={handleSubmit(saveFormData)}
                 value="ssl"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
               />
@@ -170,6 +172,7 @@ export function Step06EmailIntegration() {
                 id="smtpNone"
                 type="radio"
                 {...register('smtpEncryption')}
+                onChange={handleSubmit(saveFormData)}
                 value="none"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
               />
@@ -220,6 +223,6 @@ export function Step06EmailIntegration() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }
