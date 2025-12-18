@@ -128,17 +128,26 @@ async function main() {
   // 2. Create roles with permissions
   console.log('👥 Creating roles...');
   for (const roleData of ROLES) {
-    const role = await prisma.role.upsert({
-      where: { name_shopId: { name: roleData.name, shopId: null } },
-      update: {},
-      create: {
+    // Check if role exists
+    let role = await prisma.role.findFirst({
+      where: {
         name: roleData.name,
-        displayName: roleData.displayName,
-        description: roleData.description,
-        isSystemRole: roleData.isSystemRole,
-        shopId: roleData.shopId,
+        shopId: null,
       },
     });
+
+    // Create if it doesn't exist
+    if (!role) {
+      role = await prisma.role.create({
+        data: {
+          name: roleData.name,
+          displayName: roleData.displayName,
+          description: roleData.description,
+          isSystemRole: roleData.isSystemRole,
+          shopId: roleData.shopId,
+        },
+      });
+    }
 
     // Assign permissions
     if (roleData.permissions.includes('*:*')) {

@@ -16,7 +16,7 @@ import {
   optionalTenantFilter,
 } from '../lib/tenant-filter';
 import { createAuditLog, sanitizeForAudit } from '../lib/audit';
-import * as bcrypt from 'bcryptjs';
+import { hash, compare } from 'bcrypt';
 
 // Validation schemas
 const createUserSchema = z.object({
@@ -230,7 +230,7 @@ export const usersRouter = createTRPCRouter({
       }
 
       // Hash password
-      const passwordHash = await bcrypt.hash(password, 10);
+      const passwordHash = await hash(password, 10);
 
       // Create user
       const user = await ctx.db.user.create({
@@ -581,7 +581,7 @@ export const usersRouter = createTRPCRouter({
       validateTenantAccess(ctx.session, user.shopId);
 
       // Hash new password
-      const passwordHash = await bcrypt.hash(input.newPassword, 10);
+      const passwordHash = await hash(input.newPassword, 10);
 
       // Update password
       await ctx.db.user.update({

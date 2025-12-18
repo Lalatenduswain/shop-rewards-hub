@@ -8,7 +8,7 @@
 import { TRPCError } from '@trpc/server';
 import type { Session } from '../trpc';
 import { protectedProcedure } from '../trpc';
-import { RBACService } from '../services/rbac';
+import { userHasPermission } from '../../lib/auth/rbac.service';
 
 /**
  * Create a tRPC middleware that requires a specific permission
@@ -37,8 +37,7 @@ export const requirePermission = (module: string, action: string) =>
     }
 
     // Check if user has the required permission
-    const hasPermission = await RBACService.userHasPermission(
-      ctx.db,
+    const hasPermission = await userHasPermission(
       ctx.session.userId,
       module,
       action
@@ -80,7 +79,7 @@ export async function hasPermission(
     return true;
   }
 
-  return await RBACService.userHasPermission(db, session.userId, module, action);
+  return await userHasPermission(session.userId, module, action);
 }
 
 /**
@@ -106,7 +105,7 @@ export const requireAnyPermission = (permissions: Array<[string, string]>) =>
     // Check if user has any of the required permissions
     const hasAnyPermission = await Promise.all(
       permissions.map(([module, action]) =>
-        RBACService.userHasPermission(ctx.db, ctx.session.userId, module, action)
+        userHasPermission(ctx.session.userId, module, action)
       )
     );
 
@@ -146,7 +145,7 @@ export const requireAllPermissions = (permissions: Array<[string, string]>) =>
     // Check if user has all of the required permissions
     const hasAllPermissions = await Promise.all(
       permissions.map(([module, action]) =>
-        RBACService.userHasPermission(ctx.db, ctx.session.userId, module, action)
+        userHasPermission(ctx.session.userId, module, action)
       )
     );
 
