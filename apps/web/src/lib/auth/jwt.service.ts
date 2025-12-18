@@ -16,9 +16,12 @@ const ALGORITHM = 'HS256';
 // JWT payload structure
 export interface TokenPayload {
   userId: string;
+  email: string;
+  name: string | null;
   shopId: string | null;
   roles: string[];
   isSuperAdmin: boolean;
+  mfaEnabled: boolean;
   type: 'access' | 'refresh';
 }
 

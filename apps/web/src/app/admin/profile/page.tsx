@@ -7,9 +7,16 @@
  */
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import DisableMFAModal from '@/components/security/DisableMFAModal';
+import RegenerateBackupCodesModal from '@/components/security/RegenerateBackupCodesModal';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, refreshAuth } = useAuth();
+  const router = useRouter();
+  const [showDisableMFAModal, setShowDisableMFAModal] = useState(false);
+  const [showRegenerateCodesModal, setShowRegenerateCodesModal] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -65,6 +72,61 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Security Settings */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="px-4 py-5 sm:p-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Security Settings
+          </h3>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  Two-Factor Authentication
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Add an extra layer of security to your account
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                {user?.mfaEnabled ? (
+                  <>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                      Enabled
+                    </span>
+                    <button
+                      onClick={() => setShowDisableMFAModal(true)}
+                      className="px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                    >
+                      Disable
+                    </button>
+                    <button
+                      onClick={() => setShowRegenerateCodesModal(true)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      Backup Codes
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+                      Disabled
+                    </span>
+                    <button
+                      onClick={() => router.push('/admin/security/mfa/setup')}
+                      className="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"
+                    >
+                      Enable
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Placeholder for additional sections */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
@@ -95,8 +157,6 @@ export default function ProfilePage() {
               <ul className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1">
                 <li>• Edit profile information</li>
                 <li>• Change password</li>
-                <li>• Enable/disable MFA</li>
-                <li>• Manage backup codes</li>
                 <li>• Activity history</li>
                 <li>• Notification preferences</li>
               </ul>
@@ -104,6 +164,26 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {user?.userId && (
+        <>
+          <DisableMFAModal
+            isOpen={showDisableMFAModal}
+            onClose={() => setShowDisableMFAModal(false)}
+            userId={user.userId}
+            onSuccess={() => {
+              // Refresh user data to update MFA status
+              refreshAuth();
+            }}
+          />
+          <RegenerateBackupCodesModal
+            isOpen={showRegenerateCodesModal}
+            onClose={() => setShowRegenerateCodesModal(false)}
+            userId={user.userId}
+          />
+        </>
+      )}
     </div>
   );
 }

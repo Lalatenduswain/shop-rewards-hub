@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   name: string | null;
   isSuperAdmin: boolean;
+  mfaEnabled: boolean;
   shopId: string | null;
   roles: string[];
   permissions: string[];
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: decoded.email,
           name: decoded.name || null,
           isSuperAdmin: decoded.isSuperAdmin || false,
+          mfaEnabled: decoded.mfaEnabled || false,
           shopId: decoded.shopId || null,
           roles: decoded.roles || [],
           permissions: decoded.permissions || [],
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: decoded.email,
         name: decoded.name || null,
         isSuperAdmin: decoded.isSuperAdmin || false,
+        mfaEnabled: decoded.mfaEnabled || false,
         shopId: decoded.shopId || null,
         roles: decoded.roles || [],
         permissions: decoded.permissions || [],
@@ -171,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: decoded.email,
           name: decoded.name || null,
           isSuperAdmin: decoded.isSuperAdmin || false,
+          mfaEnabled: decoded.mfaEnabled || false,
           shopId: decoded.shopId || null,
           roles: decoded.roles || [],
           permissions: decoded.permissions || [],

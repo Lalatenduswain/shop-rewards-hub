@@ -132,9 +132,12 @@ export const authRouter = createTRPCRouter({
       const roles = user.roles.map((ur) => ur.role.name);
       const tokens = await generateTokenPair({
         userId: user.id,
+        email: user.email,
+        name: user.name || `${user.firstName} ${user.lastName}`,
         shopId: user.shopId,
         roles,
         isSuperAdmin: user.isSuperAdmin,
+        mfaEnabled: !!user.mfaSecret,
       });
 
       console.log('[Auth] Login successful:', user.email);
@@ -202,9 +205,12 @@ export const authRouter = createTRPCRouter({
       const roles = user.roles.map((ur) => ur.role.name);
       const tokens = await generateTokenPair({
         userId: user.id,
+        email: user.email,
+        name: user.name || `${user.firstName} ${user.lastName}`,
         shopId: user.shopId,
         roles,
         isSuperAdmin: user.isSuperAdmin,
+        mfaEnabled: !!user.mfaSecret,
       });
 
       console.log('[Auth] MFA login successful:', user.email);
@@ -284,9 +290,12 @@ export const authRouter = createTRPCRouter({
       const roles = user.roles.map((ur) => ur.role.name);
       const tokens = await generateTokenPair({
         userId: user.id,
+        email: user.email,
+        name: user.name || `${user.firstName} ${user.lastName}`,
         shopId: user.shopId,
         roles,
         isSuperAdmin: user.isSuperAdmin,
+        mfaEnabled: !!user.mfaSecret,
       });
 
       console.log('[Auth] Backup code login successful:', user.email);
@@ -340,9 +349,12 @@ export const authRouter = createTRPCRouter({
         const roles = user.roles.map((ur) => ur.role.name);
         const tokens = await generateTokenPair({
           userId: user.id,
+          email: user.email,
+          name: user.name || `${user.firstName} ${user.lastName}`,
           shopId: user.shopId,
           roles,
           isSuperAdmin: user.isSuperAdmin,
+          mfaEnabled: !!user.mfaSecret,
         });
 
         console.log('[Auth] Token refresh successful');
