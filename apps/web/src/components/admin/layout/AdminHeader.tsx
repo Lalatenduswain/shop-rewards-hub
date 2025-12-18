@@ -8,9 +8,11 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function AdminHeader() {
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   return (
@@ -86,7 +88,7 @@ export default function AdminHeader() {
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
-                      // Navigate to profile page (not yet implemented)
+                      router.push('/admin/profile');
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
@@ -96,7 +98,7 @@ export default function AdminHeader() {
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
-                      // Navigate to settings page (not yet implemented)
+                      router.push('/admin/settings');
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
