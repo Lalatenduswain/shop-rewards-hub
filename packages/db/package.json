@@ -15,7 +15,8 @@
     "clean": "rm -rf .turbo node_modules"
   },
   "dependencies": {
-    "@prisma/client": "^5.8.1"
+    "@prisma/client": "^5.8.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "prisma": "^5.8.1",

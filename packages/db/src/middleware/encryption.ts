@@ -4,6 +4,7 @@
  * Master key must be set in ENCRYPTION_KEY environment variable
  */
 
+import 'server-only';
 import { Prisma } from '@prisma/client';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
@@ -67,7 +68,7 @@ export function decrypt(ciphertext: string): string {
     throw new Error('DECRYPT_ERROR: Invalid ciphertext format');
   }
 
-  const [ivHex, authTagHex, encrypted] = parts;
+  const [ivHex, authTagHex, encrypted] = parts as [string, string, string];
 
   const key = getEncryptionKey();
   const iv = Buffer.from(ivHex, 'hex');
