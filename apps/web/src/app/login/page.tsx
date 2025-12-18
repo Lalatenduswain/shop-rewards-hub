@@ -130,7 +130,7 @@ export default function LoginPage() {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} method="post" className="space-y-5">
             {!requiresMfa ? (
               <>
                 <div>
