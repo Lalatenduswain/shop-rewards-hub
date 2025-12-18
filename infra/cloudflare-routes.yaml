@@ -1,0 +1,56 @@
+# Cloudflare Tunnel Routes Configuration
+# Domain: lalatendu.info
+# Application: ShopRewards Hub
+
+# Copy these routes to your Cloudflare Zero Trust Dashboard
+# Dashboard: https://one.dash.cloudflare.com/
+# Navigate to: Access → Tunnels → [Your Tunnel] → Configure → Public Hostnames
+
+routes:
+  # Main Application - Next.js Web Frontend
+  - public_hostname: shoprewards.lalatendu.info
+    service: http://localhost:3000
+    type: HTTP
+    description: ShopRewards Hub - Main Web Application
+    tls_verification: false
+    access_application: false  # Public access
+
+  # API Backend (if running separately)
+  - public_hostname: api.shoprewards.lalatendu.info
+    service: http://localhost:4000
+    type: HTTP
+    description: ShopRewards Hub - API Backend
+    tls_verification: false
+    access_application: false  # Or true to require authentication
+
+  # RabbitMQ Management Console
+  - public_hostname: rabbitmq.shoprewards.lalatendu.info
+    service: http://localhost:15672
+    type: HTTP
+    description: RabbitMQ Management Console
+    tls_verification: false
+    access_application: true  # RECOMMENDED: Protect with Cloudflare Access
+    access_policy:
+      - name: "Admin Access Only"
+        decision: allow
+        include:
+          - emails: ["your-admin@email.com"]  # Replace with your email
+
+  # MinIO Storage Console
+  - public_hostname: minio.shoprewards.lalatendu.info
+    service: http://localhost:9001
+    type: HTTP
+    description: MinIO Object Storage Console
+    tls_verification: false
+    access_application: true  # RECOMMENDED: Protect with Cloudflare Access
+    access_policy:
+      - name: "Admin Access Only"
+        decision: allow
+        include:
+          - emails: ["your-admin@email.com"]  # Replace with your email
+
+# Additional Configuration Notes:
+# 1. Replace "your-admin@email.com" with your actual admin email
+# 2. For production, consider using IP-based access policies
+# 3. Enable WAF and rate limiting in Cloudflare dashboard
+# 4. All routes will automatically get free SSL/TLS certificates
