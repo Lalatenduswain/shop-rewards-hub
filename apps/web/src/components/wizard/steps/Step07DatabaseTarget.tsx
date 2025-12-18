@@ -15,7 +15,7 @@ export function Step07DatabaseTarget() {
 
   const {
     register,
-
+    handleSubmit,
     watch,
     formState: { errors, isValid },
   } = useForm<Database>({
@@ -24,14 +24,12 @@ export function Step07DatabaseTarget() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
   const target = watch('target');
 
-  useEffect(() => {
-    if (formValues) {
-      setDatabaseData(formValues);
-    }
-  }, [formValues, setDatabaseData]);
+  // Save form data
+  const saveFormData = (data: Database) => {
+    setDatabaseData(data);
+  };
 
   useEffect(() => {
     if (isValid && validationStatus === 'success') {
@@ -79,7 +77,10 @@ export function Step07DatabaseTarget() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setDatabaseData({ target: 'sqlite' })}
+            onClick={() => {
+              setDatabaseData({ target: 'sqlite' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -109,7 +110,10 @@ export function Step07DatabaseTarget() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setDatabaseData({ target: 'docker-postgres' })}
+            onClick={() => {
+              setDatabaseData({ target: 'docker-postgres' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -139,7 +143,10 @@ export function Step07DatabaseTarget() {
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-blue-300'
             }`}
-            onClick={() => setDatabaseData({ target: 'managed' })}
+            onClick={() => {
+              setDatabaseData({ target: 'managed' });
+              handleSubmit(saveFormData)();
+            }}
           >
             <div className="flex items-start gap-3">
               <input
@@ -180,6 +187,7 @@ export function Step07DatabaseTarget() {
             <select
               id="provider"
               {...register('provider')}
+              onChange={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select provider</option>
@@ -205,6 +213,7 @@ export function Step07DatabaseTarget() {
               id="connectionString"
               type="text"
               {...register('connectionString')}
+              onBlur={handleSubmit(saveFormData)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
               placeholder="postgresql://user:password@host:5432/database?sslmode=require"
             />
