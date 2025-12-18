@@ -13,7 +13,7 @@ export function Step01CompanySetup() {
 
   const {
     register,
-    watch,
+    handleSubmit,
     formState: { errors, isValid },
   } = useForm<CompanySetup>({
     resolver: zodResolver(companySetupSchema),
@@ -21,24 +21,20 @@ export function Step01CompanySetup() {
     mode: 'onChange',
   });
 
-  const formValues = watch();
-
-  // Auto-save to store on every change
-  useEffect(() => {
-    if (formValues) {
-      setCompanyData(formValues);
-    }
-  }, [formValues, setCompanyData]);
-
-  // Mark step as completed when valid
+  // Save data when form is valid and mark step completed
   useEffect(() => {
     if (isValid) {
       markStepCompleted(1);
     }
   }, [isValid, markStepCompleted]);
 
+  // Save form data on blur or when moving to next step
+  const saveFormData = (data: CompanySetup) => {
+    setCompanyData(data);
+  };
+
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit(saveFormData)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Company Name */}
         <div className="col-span-2">
@@ -49,6 +45,7 @@ export function Step01CompanySetup() {
             id="name"
             type="text"
             {...register('name')}
+            onBlur={handleSubmit(saveFormData)}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Acme Corporation"
           />
@@ -192,6 +189,6 @@ export function Step01CompanySetup() {
           </p>
         </div>
       )}
-    </div>
+    </form>
   );
 }
