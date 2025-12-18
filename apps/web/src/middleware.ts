@@ -5,8 +5,11 @@
  * Checks SetupWizardState.systemConfigured flag in database.
  */
 
+export const runtime = 'nodejs';
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { prisma } from '@shop-rewards/db';
 
 // Routes that should always be accessible (even when not configured)
 const PUBLIC_ROUTES = [
@@ -25,14 +28,46 @@ const PROTECTED_ROUTES = [
   '/login',
 ];
 
+// Cache the setup status to avoid DB queries on every request
+let setupStatusCache: { configured: boolean; timestamp: number } | null = null;
+const CACHE_TTL = 5000; // 5 seconds
+
 /**
  * Check if system setup is complete
- * Reads from environment variable set by entrypoint script
+ * Checks database for systemConfigured flag with caching
  */
-function isSystemConfigured(): boolean {
-  // Check SETUP_COMPLETED environment variable
-  // This is set by docker entrypoint scripts after wizard completion
-  return process.env.SETUP_COMPLETED === 'true';
+async function isSystemConfigured(): Promise<boolean> {
+  // Check environment variable first (for production/Docker)
+  if (process.env.SETUP_COMPLETED === 'true') {
+    return true;
+  }
+
+  // Check cache
+  if (setupStatusCache && Date.now() - setupStatusCache.timestamp < CACHE_TTL) {
+    return setupStatusCache.configured;
+  }
+
+  try {
+    // Query database
+    const state = await prisma.setupWizardState.findUnique({
+      where: { id: 'system' },
+      select: { systemConfigured: true },
+    });
+
+    const configured = state?.systemConfigured ?? false;
+
+    // Update cache
+    setupStatusCache = {
+      configured,
+      timestamp: Date.now(),
+    };
+
+    return configured;
+  } catch (error) {
+    // If database is not available, assume not configured
+    console.error('[Middleware] Failed to check setup status:', error);
+    return false;
+  }
 }
 
 /**
@@ -48,22 +83,24 @@ function requiresSetup(pathname: string): boolean {
   return true;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const setupComplete = await isSystemConfigured();
 
   console.log('[Middleware] Request:', {
     pathname,
-    setupComplete: isSystemConfigured(),
+    setupComplete,
   });
 
   // If accessing setup page and system is already configured, redirect to home
-  if (pathname.startsWith('/setup') && isSystemConfigured()) {
+  if (pathname.startsWith('/setup') && setupComplete) {
     console.log('[Middleware] Setup already complete, redirecting to home');
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   // If accessing protected route and system is not configured, redirect to setup
-  if (requiresSetup(pathname) && !isSystemConfigured()) {
+  if (requiresSetup(pathname) && !setupComplete) {
     console.log('[Middleware] System not configured, redirecting to setup');
     return NextResponse.redirect(new URL('/setup', request.url));
   }
