@@ -45,7 +45,7 @@ export function generateAlphanumericCode(length: number = 10): string {
   const randomBytesArray = randomBytes(length);
 
   for (let i = 0; i < length; i++) {
-    result += chars[randomBytesArray[i] % chars.length];
+    result += chars[randomBytesArray[i]! % chars.length];
   }
 
   return result;

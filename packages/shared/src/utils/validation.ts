@@ -139,7 +139,7 @@ export function extractBase64FromDataUrl(dataUrl: string): {
   }
 
   return {
-    mimeType: match[1],
-    base64Data: match[2],
+    mimeType: match[1]!,
+    base64Data: match[2]!,
   };
 }

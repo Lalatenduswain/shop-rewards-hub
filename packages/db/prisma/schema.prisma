@@ -43,7 +43,7 @@ model SetupWizardState {
 }
 
 model Company {
-  id           String   @id @default(cuid()) @default("default")
+  id           String   @id @default(cuid())
   name         String
   industry     String?
   country      String
