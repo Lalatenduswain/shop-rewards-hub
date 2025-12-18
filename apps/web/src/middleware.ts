@@ -93,10 +93,16 @@ export async function middleware(request: NextRequest) {
     setupComplete,
   });
 
-  // If accessing setup page and system is already configured, redirect to home
+  // If accessing home page and system is already configured, redirect to admin
+  if (pathname === '/' && setupComplete) {
+    console.log('[Middleware] Setup complete, redirecting to admin dashboard');
+    return NextResponse.redirect(new URL('/admin', request.url));
+  }
+
+  // If accessing setup page and system is already configured, redirect to admin
   if (pathname.startsWith('/setup') && setupComplete) {
-    console.log('[Middleware] Setup already complete, redirecting to home');
-    return NextResponse.redirect(new URL('/', request.url));
+    console.log('[Middleware] Setup already complete, redirecting to admin');
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   // If accessing protected route and system is not configured, redirect to setup
