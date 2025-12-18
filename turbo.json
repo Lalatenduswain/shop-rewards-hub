@@ -54,7 +54,13 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": [
+        "DATABASE_URL",
+        "ENCRYPTION_KEY",
+        "JWT_SECRET",
+        "NEXT_PUBLIC_API_URL"
+      ]
     },
     "clean": {
       "cache": false
