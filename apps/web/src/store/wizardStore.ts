@@ -3,18 +3,18 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   WizardState,
   CompanySetup,
-  AdminSetup,
-  BrandingSetup,
-  AppConfigSetup,
-  SecuritySetup,
-  SmtpConfig,
-  DatabaseTarget,
-  RbacSetup,
-  OrganizationSetup,
+  AdminUser,
+  Branding,
+  AppConfig,
+  Security,
+  Integration,
+  Database,
+  RBAC,
+  Organization,
   DataImport,
-  BillingSetup,
-  LaunchConfirmation,
-} from '@shop-rewards/shared/validators';
+  Billing,
+  Launch,
+} from '@shop-rewards/shared';
 
 /**
  * Extended Wizard State with UI-specific properties
@@ -26,17 +26,17 @@ export interface WizardStoreState extends Partial<WizardState> {
 
   // Individual step data
   company?: CompanySetup;
-  admin?: AdminSetup;
-  branding?: BrandingSetup;
-  appConfig?: AppConfigSetup;
-  security?: SecuritySetup;
-  smtp?: SmtpConfig;
-  database?: DatabaseTarget;
-  rbac?: RbacSetup;
-  organization?: OrganizationSetup;
+  admin?: AdminUser;
+  branding?: Branding;
+  appConfig?: AppConfig;
+  security?: Security;
+  integration?: Integration;
+  database?: Database;
+  rbac?: RBAC;
+  organization?: Organization;
   dataImport?: DataImport;
-  billing?: BillingSetup;
-  launch?: LaunchConfirmation;
+  billing?: Billing;
+  launch?: Launch;
 
   // UI state
   isLoading: boolean;
@@ -51,17 +51,17 @@ export interface WizardStoreState extends Partial<WizardState> {
 
   // Data setters for each step
   setCompanyData: (data: Partial<CompanySetup>) => void;
-  setAdminData: (data: Partial<AdminSetup>) => void;
-  setBrandingData: (data: Partial<BrandingSetup>) => void;
-  setAppConfigData: (data: Partial<AppConfigSetup>) => void;
-  setSecurityData: (data: Partial<SecuritySetup>) => void;
-  setSmtpData: (data: Partial<SmtpConfig>) => void;
-  setDatabaseData: (data: Partial<DatabaseTarget>) => void;
-  setRbacData: (data: Partial<RbacSetup>) => void;
-  setOrganizationData: (data: Partial<OrganizationSetup>) => void;
+  setAdminData: (data: Partial<AdminUser>) => void;
+  setBrandingData: (data: Partial<Branding>) => void;
+  setAppConfigData: (data: Partial<AppConfig>) => void;
+  setSecurityData: (data: Partial<Security>) => void;
+  setIntegrationData: (data: Partial<Integration>) => void;
+  setDatabaseData: (data: Partial<Database>) => void;
+  setRbacData: (data: Partial<RBAC>) => void;
+  setOrganizationData: (data: Partial<Organization>) => void;
   setDataImportData: (data: Partial<DataImport>) => void;
-  setBillingData: (data: Partial<BillingSetup>) => void;
-  setLaunchData: (data: Partial<LaunchConfirmation>) => void;
+  setBillingData: (data: Partial<Billing>) => void;
+  setLaunchData: (data: Partial<Launch>) => void;
 
   // Utility actions
   setLoading: (loading: boolean) => void;
@@ -134,56 +134,56 @@ export const useWizardStore = create<WizardStoreState>()(
 
       setAdminData: (data) => {
         set((state) => ({
-          admin: { ...state.admin, ...data } as AdminSetup,
+          admin: { ...state.admin, ...data } as AdminUser,
           lastSaved: new Date(),
         }));
       },
 
       setBrandingData: (data) => {
         set((state) => ({
-          branding: { ...state.branding, ...data } as BrandingSetup,
+          branding: { ...state.branding, ...data } as Branding,
           lastSaved: new Date(),
         }));
       },
 
       setAppConfigData: (data) => {
         set((state) => ({
-          appConfig: { ...state.appConfig, ...data } as AppConfigSetup,
+          appConfig: { ...state.appConfig, ...data } as AppConfig,
           lastSaved: new Date(),
         }));
       },
 
       setSecurityData: (data) => {
         set((state) => ({
-          security: { ...state.security, ...data } as SecuritySetup,
+          security: { ...state.security, ...data } as Security,
           lastSaved: new Date(),
         }));
       },
 
-      setSmtpData: (data) => {
+      setIntegrationData: (data) => {
         set((state) => ({
-          smtp: { ...state.smtp, ...data } as SmtpConfig,
+          integration: { ...state.integration, ...data } as Integration,
           lastSaved: new Date(),
         }));
       },
 
       setDatabaseData: (data) => {
         set((state) => ({
-          database: { ...state.database, ...data } as DatabaseTarget,
+          database: { ...state.database, ...data } as Database,
           lastSaved: new Date(),
         }));
       },
 
       setRbacData: (data) => {
         set((state) => ({
-          rbac: { ...state.rbac, ...data } as RbacSetup,
+          rbac: { ...state.rbac, ...data } as RBAC,
           lastSaved: new Date(),
         }));
       },
 
       setOrganizationData: (data) => {
         set((state) => ({
-          organization: { ...state.organization, ...data } as OrganizationSetup,
+          organization: { ...state.organization, ...data } as Organization,
           lastSaved: new Date(),
         }));
       },
@@ -197,14 +197,14 @@ export const useWizardStore = create<WizardStoreState>()(
 
       setBillingData: (data) => {
         set((state) => ({
-          billing: { ...state.billing, ...data } as BillingSetup,
+          billing: { ...state.billing, ...data } as Billing,
           lastSaved: new Date(),
         }));
       },
 
       setLaunchData: (data) => {
         set((state) => ({
-          launch: { ...state.launch, ...data } as LaunchConfirmation,
+          launch: { ...state.launch, ...data } as Launch,
           lastSaved: new Date(),
         }));
       },

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@shop-rewards/db": "workspace:*",
     "@shop-rewards/shared": "workspace:*",
     "@shop-rewards/ui": "workspace:*",
@@ -22,7 +23,6 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "superjson": "^2.2.1",
-    "zod": "^3.22.4",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
@@ -32,7 +32,10 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.33",
+    "react-hook-form": "^7.68.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.3.3"
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.3.3",
+    "zod": "link:@hookform/resolvers/zod"
   }
 }
