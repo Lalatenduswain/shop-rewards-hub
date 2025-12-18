@@ -236,7 +236,7 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 font-semibold">
-                        {userItem.name?.[0]?.toUpperCase() || userItem.email[0].toUpperCase()}
+                        {userItem.name?.[0]?.toUpperCase() || userItem.email[0]?.toUpperCase() || '?'}
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -257,7 +257,7 @@ export default function UsersPage() {
                       <div className="flex flex-wrap gap-1">
                         {userItem.roles.map((ur) => (
                           <span
-                            key={ur.id}
+                            key={ur.roleId}
                             className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                           >
                             {ur.role.name}
@@ -279,12 +279,12 @@ export default function UsersPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        userItem.locked
+                        userItem.lockedUntil && new Date(userItem.lockedUntil) > new Date()
                           ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
                           : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                       }`}
                     >
-                      {userItem.locked ? 'Locked' : 'Active'}
+                      {userItem.lockedUntil && new Date(userItem.lockedUntil) > new Date() ? 'Locked' : 'Active'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

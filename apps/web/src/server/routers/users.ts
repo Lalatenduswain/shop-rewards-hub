@@ -32,7 +32,8 @@ const updateUserSchema = z.object({
   id: z.string(),
   email: z.string().email().optional(),
   name: z.string().min(1).optional(),
-  locked: z.boolean().optional(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
 });
 
 const assignRoleSchema = z.object({
@@ -143,7 +144,7 @@ export const usersRouter = createTRPCRouter({
             include: {
               role: {
                 include: {
-                  rolePermissions: {
+                  permissions: {
                     include: {
                       permission: true,
                     },
@@ -217,9 +218,12 @@ export const usersRouter = createTRPCRouter({
         }
       }
 
-      // Check if email already exists
-      const existingUser = await ctx.db.user.findUnique({
-        where: { email },
+      // Check if email already exists (email is unique per shopId)
+      const existingUser = await ctx.db.user.findFirst({
+        where: {
+          email,
+          shopId: targetShopId,
+        },
       });
 
       if (existingUser) {
@@ -232,11 +236,18 @@ export const usersRouter = createTRPCRouter({
       // Hash password
       const passwordHash = await hash(password, 10);
 
+      // Parse name into firstName and lastName
+      const nameParts = name.trim().split(/\s+/);
+      const firstName = nameParts[0] || 'User';
+      const lastName = nameParts.slice(1).join(' ') || 'Name';
+
       // Create user
       const user = await ctx.db.user.create({
         data: {
           email,
           name,
+          firstName,
+          lastName,
           passwordHash,
           isSuperAdmin: isSuperAdmin || false,
           shopId: targetShopId,
@@ -303,8 +314,11 @@ export const usersRouter = createTRPCRouter({
 
       // Check email uniqueness if email is being changed
       if (updates.email && updates.email !== existingUser.email) {
-        const emailExists = await ctx.db.user.findUnique({
-          where: { email: updates.email },
+        const emailExists = await ctx.db.user.findFirst({
+          where: {
+            email: updates.email,
+            shopId: existingUser.shopId,
+          },
         });
 
         if (emailExists) {
@@ -516,7 +530,10 @@ export const usersRouter = createTRPCRouter({
       // Delete assignment
       await ctx.db.userRole.delete({
         where: {
-          id: userRole.id,
+          userId_roleId: {
+            userId,
+            roleId,
+          },
         },
       });
 
@@ -535,24 +552,24 @@ export const usersRouter = createTRPCRouter({
     }),
 
   /**
-   * Toggle user locked status
+   * Lock/unlock user account
    * Super admin only
    */
-  toggleStatus: superAdminProcedure
-    .input(z.object({ id: z.string(), locked: z.boolean() }))
+  toggleLock: superAdminProcedure
+    .input(z.object({ id: z.string(), lockedUntil: z.date().nullable() }))
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db.user.update({
         where: { id: input.id },
-        data: { locked: input.locked },
+        data: { lockedUntil: input.lockedUntil },
       });
 
       // Create audit log
       await createAuditLog(ctx.db, ctx.session, {
-        action: input.locked ? 'SUSPEND' : 'ACTIVATE',
+        action: input.lockedUntil ? 'LOCK' : 'UNLOCK',
         resource: 'user',
         resourceId: input.id,
         metadata: {
-          locked: input.locked,
+          lockedUntil: input.lockedUntil,
         },
       });
 

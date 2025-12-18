@@ -18,6 +18,8 @@ export type AuditAction =
   | 'REJECT'
   | 'SUSPEND'
   | 'ACTIVATE'
+  | 'LOCK'
+  | 'UNLOCK'
   | 'ASSIGN_ROLE'
   | 'REMOVE_ROLE'
   | 'RESET_PASSWORD'
@@ -88,13 +90,11 @@ export async function createAuditLog(
       action,
       resource,
       resourceId,
-      changesBefore: changesBefore ? JSON.stringify(changesBefore) : null,
-      changesAfter: changesAfter ? JSON.stringify(changesAfter) : null,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-      ipAddress: ipAddress || null,
-      userAgent: userAgent || null,
+      changesBefore: (changesBefore as any) || null,
+      changesAfter: (changesAfter as any) || null,
+      ipAddress: ipAddress || 'unknown',
+      userAgent: userAgent || 'unknown',
       isSuspicious,
-      timestamp: new Date(),
     },
   });
 }

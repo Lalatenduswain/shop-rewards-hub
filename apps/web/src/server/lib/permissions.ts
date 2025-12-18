@@ -189,7 +189,7 @@ export async function getUserPermissions(
     include: {
       role: {
         include: {
-          rolePermissions: {
+          permissions: {
             include: {
               permission: true,
             },
@@ -203,7 +203,7 @@ export async function getUserPermissions(
   const permissionSet = new Set<string>();
 
   for (const userRole of userRoles) {
-    for (const rolePermission of userRole.role.rolePermissions) {
+    for (const rolePermission of userRole.role.permissions) {
       const permission = rolePermission.permission;
       permissionSet.add(`${permission.module}:${permission.action}`);
     }

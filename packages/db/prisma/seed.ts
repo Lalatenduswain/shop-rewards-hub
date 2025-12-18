@@ -213,6 +213,8 @@ async function main() {
         passwordHash,
         firstName: 'Super',
         lastName: 'Admin',
+        name: 'Super Admin',
+        isSuperAdmin: true,
         shopId: null, // Super admin has no shop
       },
     });
