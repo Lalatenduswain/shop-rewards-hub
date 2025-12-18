@@ -9,11 +9,13 @@ import { createTRPCRouter } from './trpc';
 import { wizardRouter } from './routers/wizard';
 import { authRouter } from './routers/auth';
 import { usersRouter } from './routers/users';
+import { loginTemplateRouter } from './routers/login-template';
 
 export const appRouter = createTRPCRouter({
   wizard: wizardRouter,
   auth: authRouter,
   users: usersRouter,
+  loginTemplate: loginTemplateRouter,
   // TODO: Add more routers as they're implemented
   // shops: shopsRouter,
   // vouchers: vouchersRouter,

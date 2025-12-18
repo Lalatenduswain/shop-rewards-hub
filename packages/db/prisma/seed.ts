@@ -49,6 +49,11 @@ const PERMISSIONS = [
   // Audit logs
   { module: 'audit', action: 'read', description: 'View audit logs' },
   { module: 'audit', action: 'read_all_tenants', description: 'View audit logs across tenants' },
+  // Settings management
+  { module: 'settings', action: 'read_global', description: 'View global platform settings' },
+  { module: 'settings', action: 'update_global', description: 'Update global settings (super admin)' },
+  { module: 'settings', action: 'read_shop', description: 'View shop-specific settings' },
+  { module: 'settings', action: 'update_shop', description: 'Update shop-specific settings' },
   // System
   { module: 'system', action: 'configure', description: 'Configure system settings' },
 ];
@@ -93,6 +98,8 @@ const ROLES = [
       'analytics:view_dashboard',
       'analytics:export',
       'audit:read',
+      'settings:read_shop',
+      'settings:update_shop',
     ],
   },
   {
@@ -250,6 +257,123 @@ async function main() {
     },
   });
 
+  // 5. Seed default global login template
+  console.log('🎨 Seeding default global login template...');
+
+  const defaultLoginTemplate = {
+    version: '1.0',
+    templateType: 'professional',
+    colors: {
+      primary: '#3b82f6', // Blue-500
+      secondary: '#1e40af', // Blue-800
+      accent: '#60a5fa', // Blue-400
+    },
+    logo: {
+      url: null,
+      type: 'default', // Use Company.logo
+    },
+    backgroundImage: {
+      url: null,
+      type: 'gradient',
+      gradient: {
+        from: '#1e40af',
+        to: '#3b82f6',
+        direction: 'to-br',
+      },
+    },
+    text: {
+      tagline: 'Retail Rewards Made Simple',
+      subTagline: 'Manage customer loyalty programs with ease',
+      loginButton: 'Sign In',
+      forgotPassword: 'Forgot password?',
+      footer: '© 2025 ShopRewards Hub. All rights reserved.',
+      demoAccount: {
+        enabled: true,
+        email: 'admin@shoprewards.local',
+        note: 'Quick login with demo credentials for testing',
+      },
+    },
+    features: {
+      showTestimonials: true,
+      showStats: true,
+      showSocialLogin: false,
+      showDemoAccount: true,
+    },
+    stats: [
+      {
+        id: 'stat1',
+        label: 'Active Shops',
+        value: 500,
+        suffix: '+',
+        icon: 'Store',
+        color: 'violet',
+        order: 0,
+      },
+      {
+        id: 'stat2',
+        label: 'Happy Customers',
+        value: 50000,
+        suffix: '+',
+        icon: 'Users',
+        color: 'rose',
+        order: 1,
+      },
+      {
+        id: 'stat3',
+        label: 'Engagement Rate',
+        value: 40,
+        suffix: '%',
+        icon: 'TrendingUp',
+        color: 'blue',
+        order: 2,
+      },
+      {
+        id: 'stat4',
+        label: 'Security',
+        value: 100,
+        suffix: '%',
+        icon: 'Shield',
+        color: 'emerald',
+        order: 3,
+      },
+    ],
+    testimonials: [
+      {
+        id: 'default1',
+        name: 'Sarah Chen',
+        role: 'Operations Director',
+        company: 'TechMart Retail',
+        quote: 'ShopRewards transformed how we engage with customers. Redemption rates increased by 40% in just 3 months!',
+        rating: 5,
+        avatar: {
+          url: null,
+          initials: 'SC',
+        },
+        order: 0,
+      },
+    ],
+    metadata: {
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'system',
+      updatedBy: 'system',
+    },
+  };
+
+  await prisma.systemConfig.upsert({
+    where: { key: 'login_template_global' },
+    update: {},
+    create: {
+      key: 'login_template_global',
+      value: JSON.stringify(defaultLoginTemplate),
+      description: 'Global login page template configuration',
+      isEncrypted: false,
+      category: 'branding',
+      updatedBy: 'system',
+    },
+  });
+
+  console.log('✅ Default login template seeded');
   console.log('✅ Database seeding completed!');
 }
 
