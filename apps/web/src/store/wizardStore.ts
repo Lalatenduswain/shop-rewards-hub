@@ -41,7 +41,7 @@ export interface WizardStoreState extends Partial<WizardState> {
   // UI state
   isLoading: boolean;
   error: string | null;
-  lastSaved: Date | null;
+  lastSaved?: Date;
 
   // Actions
   setCurrentStep: (step: number) => void;
@@ -78,7 +78,7 @@ const initialState = {
   completedSteps: [],
   isLoading: false,
   error: null,
-  lastSaved: null,
+  lastSaved: undefined,
 };
 
 /**
@@ -241,7 +241,7 @@ export const useWizardStore = create<WizardStoreState>()(
         branding: state.branding,
         appConfig: state.appConfig,
         security: state.security,
-        smtp: state.smtp,
+        integration: state.integration,
         database: state.database,
         rbac: state.rbac,
         organization: state.organization,

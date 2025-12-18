@@ -2,6 +2,7 @@
 
 import { useWizardStore, useWizardCompletion } from '@/store/wizardStore';
 import { useEffect, useState } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export function Step12Launch() {
   const { progress, completedSteps } = useWizardCompletion();
@@ -14,14 +15,20 @@ export function Step12Launch() {
     markStepCompleted(12);
   }, [markStepCompleted]);
 
+  const finalizeLaunchMutation = trpc.wizard.finalizeLaunch.useMutation();
+
   const handleLaunch = async () => {
     setIsLaunching(true);
 
     try {
-      // TODO: Call tRPC mutation to finalize wizard and create all resources
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      const result = await finalizeLaunchMutation.mutateAsync({});
 
-      setLaunchComplete(true);
+      if (result.success) {
+        setLaunchComplete(true);
+      } else {
+        console.error('Launch failed:', result.message);
+        setIsLaunching(false);
+      }
     } catch (error) {
       console.error('Launch failed:', error);
       setIsLaunching(false);

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { dataImportSchema, type DataImport } from '@shop-rewards/shared';
 import { useWizardStore } from '@/store/wizardStore';
 import { useEffect, useState } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export function Step10DataImport() {
   const dataImport = useWizardStore((state) => state.dataImport);

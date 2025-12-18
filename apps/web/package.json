@@ -14,15 +14,16 @@
     "@shop-rewards/db": "workspace:*",
     "@shop-rewards/shared": "workspace:*",
     "@shop-rewards/ui": "workspace:*",
-    "@tanstack/react-query": "^5.17.19",
-    "@trpc/client": "^10.45.0",
-    "@trpc/react-query": "^10.45.0",
-    "@trpc/server": "^10.45.0",
+    "@tanstack/react-query": "^5.90.12",
+    "@trpc/client": "^11.8.0",
+    "@trpc/next": "^11.8.0",
+    "@trpc/react-query": "^11.8.0",
+    "@trpc/server": "^11.8.0",
     "framer-motion": "^10.18.0",
     "next": "16.0.7",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "superjson": "^2.2.1",
+    "superjson": "^2.2.6",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
@@ -36,6 +37,6 @@
     "tailwindcss": "^3.4.1",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.3.3",
-    "zod": "link:@hookform/resolvers/zod"
+    "zod": "^3.22.4"
   }
 }

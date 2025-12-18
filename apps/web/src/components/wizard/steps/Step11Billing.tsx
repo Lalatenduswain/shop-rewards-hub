@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { billingSchema, type Billing } from '@shop-rewards/shared';
 import { useWizardStore } from '@/store/wizardStore';
 import { useEffect, useState } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export function Step11Billing() {
   const billing = useWizardStore((state) => state.billing);
@@ -39,12 +40,23 @@ export function Step11Billing() {
     }
   }, [isValid, provider, testStatus, markStepCompleted]);
 
+  const testProviderMutation = trpc.wizard.testPaymentProvider.useMutation();
+
   const handleTestProvider = async () => {
     setTestStatus('testing');
-    // TODO: Call tRPC mutation to test Stripe/PayPal API
-    setTimeout(() => {
-      setTestStatus('success');
-    }, 2000);
+
+    try {
+      const result = await testProviderMutation.mutateAsync(formValues);
+
+      if (result.success) {
+        setTestStatus('success');
+      } else {
+        setTestStatus('error');
+      }
+    } catch (error) {
+      console.error('Payment provider test failed:', error);
+      setTestStatus('error');
+    }
   };
 
   return (
